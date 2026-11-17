@@ -666,3 +666,69 @@ textarea.input{min-height:100px;padding:12px 14px;resize:vertical;line-height:1.
 .dock li.settling{transition:transform .2s var(--ease-out),opacity .2s ease}
 .dock li.over-trash .tile{transform:scale(.85);opacity:.6;box-shadow:none}
 html.grabbing,html.grabbing *{cursor:grabbing!important}
+
+/* ——— Formations : tableau de bord et liste des parcours ———
+   Le sélecteur reprend la forme des onglets de la bibliothèque ; chaque parcours est un bloc repliable. */
+.ftabs{display:flex;gap:4px;padding:4px;margin-top:6px;border:1px solid var(--line);border-radius:12px;background:var(--surface);width:max-content;max-width:100%}
+.ftabs a{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:0 16px;border-radius:8px;font-size:15.5px;font-weight:600;color:var(--fg-2);white-space:nowrap;transition:color .12s ease,background-color .12s ease}
+.ftabs a .i{color:var(--fg-3);transition:color .12s ease}
+@media (hover:hover){.ftabs a:hover{color:var(--fg);background:var(--sunk)}}
+.ftabs a[aria-current="page"]{color:var(--bg);background:var(--fg)}
+.ftabs a[aria-current="page"] .i{color:inherit}
+.ftabs a:active{transform:scale(.98)}
+@media (pointer:coarse){.ftabs a{min-height:44px}}
+@media (max-width:480px){.ftabs{width:100%}.ftabs a{flex:1 1 0;min-width:0;padding:0 8px;font-size:15px}}
+
+.fsec{display:flex;flex-direction:column;gap:14px;padding-top:44px}
+.fsec-h{display:flex;align-items:baseline;justify-content:space-between;gap:8px 16px;flex-wrap:wrap}
+.fsec .course+.course{margin-top:0}
+.cat-bar{display:flex;align-items:center;justify-content:space-between;gap:8px 16px;flex-wrap:wrap;padding-bottom:10px;border-bottom:1px solid var(--line)}
+
+/* Parcours en cours (tableau de bord) */
+.frow{grid-template-columns:auto minmax(0,1fr) auto;align-items:center}
+.frow .bar{max-width:280px;margin-top:2px}
+.frow .ico,.frow .tile{flex:none}
+.frow-go{display:flex;align-items:center;gap:14px}
+.frow .h4{overflow-wrap:anywhere}
+
+/* Bloc du tronc commun : légèrement souligné, c’est le point de départ */
+.course.is-tc{border-color:color-mix(in srgb,var(--accent) 38%,var(--line))}
+.course-h .ico{flex:none}
+.course-h .h4 .tag{vertical-align:2px;margin-left:6px}
+.course-h .h4{overflow-wrap:anywhere}
+
+.cat-sum{padding-bottom:10px;border-bottom:1px solid var(--line)}
+
+/* Volets internes (vidéo, modules) : même mécanique que les parcours, un cran plus discrets */
+.pane-b{display:grid;grid-template-rows:0fr;transition:grid-template-rows .3s var(--ease-out)}
+[aria-expanded="true"]+.pane-b{grid-template-rows:1fr}
+.pane-b>div{overflow:hidden;min-height:0}
+.mod-t .chev,.intro-t .chev{flex:none;color:var(--fg-3);transition:transform .25s var(--ease-out)}
+.mod-t[aria-expanded="true"] .chev,.intro-t[aria-expanded="true"] .chev{transform:rotate(180deg)}
+
+/* Vidéo d’introduction du tronc commun : ouverte au départ, repliable */
+.intro{border-top:1px solid var(--line);background:var(--bg)}
+.intro-t{width:100%;display:flex;align-items:center;gap:10px;min-height:48px;padding:10px 22px;text-align:left;font-size:15px;font-weight:600;color:var(--accent);transition:background-color .12s ease}
+@media (hover:hover){.intro-t:hover{background:var(--sunk)}}
+.intro-hint{margin-left:auto;font-size:14px;font-weight:500;color:var(--fg-3)}
+.fintro{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:24px;align-items:center;padding:4px 22px 22px}
+.fintro-media{position:relative;min-width:0}
+/* Lien posé sur le bouton « Commencer » de la fin de la vidéo : invisible, il s’éclaire au survol et au clavier */
+.fintro-cta{position:absolute;z-index:1;border-radius:10px;cursor:pointer;transition:box-shadow .15s ease}
+@media (hover:hover){.fintro-cta:hover{box-shadow:0 0 0 3px rgba(251,228,143,.6),0 0 24px rgba(251,228,143,.35)}}
+.fintro-cta:focus-visible{outline:3px solid var(--hl);outline-offset:3px}
+.fintro-v{display:block;width:100%;max-width:100%;aspect-ratio:16/9;border-radius:12px;background:#0B1511;object-fit:cover;box-shadow:var(--shadow-1)}
+@media (max-width:760px){.fintro{grid-template-columns:minmax(0,1fr);gap:16px;padding:4px 16px 16px}.intro-t{padding:10px 16px}}
+
+/* Modules et chapitres : un volet chacun, avec une case cochée quand toutes les leçons sont faites */
+.mod{border-top:1px solid var(--line)}
+.mod-t{width:100%;display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:center;gap:14px;min-height:56px;padding:12px 22px;text-align:left;transition:background-color .12s ease}
+@media (hover:hover){.mod-t:hover{background:var(--bg)}}
+.mod-t .mod-n{width:30px;height:30px;font-size:14px}
+.mod-name{font-size:16px;font-weight:600;color:var(--fg);overflow-wrap:anywhere}
+.mod-box{width:22px;height:22px;flex:none;display:grid;place-items:center;border:1.5px solid var(--line-2);border-radius:6px;color:var(--on-accent);transition:background-color .2s ease,border-color .2s ease}
+.mod.is-done .mod-box{background:var(--accent);border-color:var(--accent)}
+.mod.is-done .mod-n{background:var(--accent);color:var(--on-accent)}
+.mod .lessons{padding:0 22px 10px 66px}
+.mod .lesson{padding-inline:4px}
+@media (max-width:640px){.mod-t{gap:10px;padding:12px 16px}.mod .lessons{padding:0 12px 8px 16px}}

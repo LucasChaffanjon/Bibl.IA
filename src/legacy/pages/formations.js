@@ -1,42 +1,134 @@
-/* ——— Formations ——— */
-const openCourses = new Set();
+/* ——— Formations ———
+   La rubrique a deux vues, reliées par un sélecteur en haut de page :
+   · #formations : le tableau de bord (prochaine leçon, progression, révisions, parcours en cours) ;
+   · #parcours : tous les parcours, chacun dans un bloc repliable (le tronc commun d’abord, puis une IA par bloc). */
+let trainTab = 'formations'; /* dernière vue ouverte : on y revient en fermant une leçon */
+/* cta : le bouton « Commencer » de la fin de la vidéo. Une vidéo ne contient pas de lien cliquable : on pose un vrai lien
+   par-dessus, à la même place (en % de l’image, mesurée sur la dernière image), à partir de la seconde où il apparaît. */
+const INTRO_VIDEO = {src:'/videos/premiers-pas-avec-l-ia.mp4', poster:'/videos/premiers-pas-avec-l-ia.jpg', dur:'1 min 22', cta:{from:77.85, left:43.02, top:61.11, width:15.21, height:8.15}};
+const plural = (n, one, many) => `${n} ${n > 1 ? many : one}`;
+function courseStats(id) {
+  const ls = courseLessons(id).map(l => LESSONS[l.id]);
+  const d = ls.filter(l => S.done.includes(l.id)).length;
+  return {n:ls.length, d, min:ls.reduce((s, l) => s + (l.dur || 0), 0), pct:ls.length ? Math.round(d / ls.length * 100) : 0, next:ls.find(l => !S.done.includes(l.id)) || null};
+}
 function lessonRow(l, nextId) {
   const done = S.done.includes(l.id);
   return `<li><a class="lesson ${done ? 'done' : ''} ${l.id === nextId ? 'is-next' : ''}" href="#lecon-${l.id}">
     <span class="st" aria-hidden="true">${done ? ic('check', 'i-sm') : ''}</span><span class="lt">${esc(l.title)}${l.id === nextId ? ' <span class="tag" style="margin-left:6px">Prochaine leçon</span>' : ''}</span>
     <span class="dur">${l.dur} min</span><span class="go" aria-hidden="true">${ARW}</span><span class="sr-only">${done ? 'terminée' : 'à faire'}</span></a></li>`;
 }
-let tcInit = false;
-function viewTraining(openId) {
-  const v = $('#view'), nl = nextLesson(), g = globalProgress(), tcDone = coursePct('tc') === 100;
-  if (!tcInit) { tcInit = true; if (nl && nl.course === 'tc') openCourses.add('tcm' + nl.mod); }
-  v.innerHTML = `<div class="wrap"><header class="phead"><h1 class="h1 split">Des leçons de 3 à 5 minutes</h1>
-    <p class="lead">Chaque leçon est centrée sur une tâche concrète. Commencez par le tronc commun, puis suivez le parcours des IA que vous utilisez.</p></header>
+function trainTabs(tab) {
+  const tabs = [['formations', 'Tableau de bord', 'user'], ['parcours', 'Tous les parcours', 'cap']];
+  return `<nav class="ftabs" aria-label="Sections des formations">${tabs.map(([h, label, i]) => `<a href="#${h}"${h === tab ? ' aria-current="page"' : ''}>${ic(i, 'i-sm')}${label}</a>`).join('')}</nav>`;
+}
+
+/* Tableau de bord : ce qu’il faut faire maintenant, et où l’on en est */
+function viewDashboard(v, nl) {
+  const g = globalProgress();
+  const all = [{id:'tc', name:TRONC.name}, ...orderedCourses().map(a => ({id:a.id, name:COURSES[a.id].name}))].map(c => Object.assign(c, courseStats(c.id)));
+  const going = all.filter(c => c.d > 0 && c.d < c.n), finished = all.filter(c => c.n && c.d === c.n);
+  /* Rien en cours : on propose le parcours qui contient la prochaine leçon (le tronc commun au départ) */
+  const list = going.length ? going : all.filter(c => nl && c.id === nl.course);
+  const row = c => `<li><a class="lrow frow" href="${c.next ? `#lecon-${c.next.id}` : '#parcours'}">
+      ${c.id === 'tc' ? `<span class="ico" aria-hidden="true">${ic('cap')}</span>` : tile(c.id)}
+      <span class="stack" style="gap:6px;min-width:0"><span class="h4">${esc(c.id === 'tc' ? `Tronc commun · ${c.name}` : c.name)}</span>
+        <span class="small muted">${c.d} sur ${plural(c.n, 'leçon', 'leçons')}${c.next ? ` · Prochaine : ${esc(c.next.title)}` : ''}</span>
+        <span class="bar"><i data-v="${c.pct / 100}"></i></span></span>
+      <span class="frow-go"><span class="pct">${c.pct} %</span><span class="go" aria-hidden="true">${ARW}</span></span></a></li>`;
+  v.innerHTML = `<div class="wrap"><header class="phead"><h1 class="h1 split">Votre tableau de bord</h1>
+    <p class="lead">Reprenez là où vous en étiez, révisez ce que vous avez appris et suivez votre progression.</p>${trainTabs('formations')}</header>
     <div class="f-hero">
       ${nl ? `<div class="f-next reveal"><p class="label">Votre prochaine leçon · ${esc(courseName(nl))}</p><h2>${esc(nl.title)}</h2><p style="opacity:.85">${ic('clock', 'i-sm')} ${nl.dur} minutes · ${esc(nl.chap)}</p><a class="btn has-arrow" href="#lecon-${nl.id}">${ic('play', 'i-sm')}Commencer ${ARW}</a></div>`
         : `<div class="f-next reveal"><p class="label">Formations</p><h2>Toutes vos leçons sont terminées.</h2></div>`}
-      <div class="f-prog reveal"><p class="label">Votre progression</p><p class="big"><span data-count="${g.pct}" data-suffix=" %">${g.pct} %</span></p><div class="bar"><i data-v="${g.pct / 100}"></i></div><p class="small muted">${g.done} leçon${g.done > 1 ? 's' : ''} terminée${g.done > 1 ? 's' : ''} sur ${g.total}</p></div>
+      <div class="f-prog reveal"><p class="label">Votre progression</p><p class="big"><span data-count="${g.pct}" data-suffix=" %">${g.pct} %</span></p><div class="bar"><i data-v="${g.pct / 100}"></i></div><p class="small muted">${plural(g.done, 'leçon terminée', 'leçons terminées')} sur ${g.total}</p></div>
     </div>
     ${reviewBlock()}
-    <section class="section" style="border-top:0"><div class="sec-head reveal"><h2 class="h2">Tronc commun : ${esc(TRONC.name)}</h2><p class="lead">${TRONC.lessons.length} leçons de 3 ou 4 minutes en ${TRONC.mods.length} modules, des fondations aux usages avancés. Chacune explique en quelques lignes, vous fait essayer tout de suite sur une tâche réelle, puis revient sous forme de question les jours suivants.</p></div>
-      <p class="tc-sum reveal">${coursePct('tc')} % terminé · ${TRONC.lessons.reduce((s, l) => s + l.dur, 0)} minutes en tout</p>
-      ${TRONC.mods.map((m, k) => { const ls = TRONC.lessons.filter(l => l.mod === k), d = ls.filter(l => S.done.includes(l.id)).length, key = 'tcm' + k, open = openCourses.has(key);
-        return `<div class="course reveal"><button class="course-h" type="button" aria-expanded="${open}" data-course="${key}"><span class="mod-n ${d === ls.length ? 'is-done' : ''}" aria-hidden="true">${d === ls.length ? ic('check', 'i-sm') : k + 1}</span><span class="stack" style="gap:2px"><span class="h4">${esc(m)}</span><span class="small muted">${ls.length} leçons · ${ls.reduce((s, l) => s + l.dur, 0)} minutes</span></span>
-          <span class="stack" style="gap:6px"><span class="bar"><i data-v="${d / ls.length}"></i></span><span class="pct">${d} sur ${ls.length}</span></span><svg class="i chev" aria-hidden="true"><use href="#i-chev"/></svg></button>
-          <div class="course-b"><div><div class="chap"><ul class="lessons">${ls.map(l => lessonRow(LESSONS[l.id], nl && nl.id)).join('')}</ul></div></div></div></div>`; }).join('')}</section>
-    <section class="section"><div class="sec-head reveal"><h2 class="h2">De l’essentiel à l’avancé</h2><p class="lead">Prise en main, paramétrage, usages concrets, aller plus loin.${tcDone ? '' : ' Nous vous conseillons de terminer d’abord le tronc commun.'}</p></div>
-      ${orderedCourses().map(a => { const c = COURSES[a.id], pc = coursePct(a.id), open = openCourses.has(a.id);
-        return `<div class="course reveal"><button class="course-h" type="button" aria-expanded="${open}" data-course="${a.id}">${tile(a.id)}<span class="stack" style="gap:2px"><span class="h4">${esc(c.name)}</span><span class="small muted">4 chapitres · 8 leçons</span></span>
-          <span class="stack" style="gap:6px"><span class="bar"><i data-v="${pc / 100}"></i></span><span class="pct">${pc} %</span></span><svg class="i chev" aria-hidden="true"><use href="#i-chev"/></svg></button>
-          <div class="course-b"><div>${c.chapters.map(ch => `<div class="chap"><h4>${esc(ch.t)}</h4><ul class="lessons">${ch.l.map(l => lessonRow(LESSONS[l.id], nl && nl.id)).join('')}</ul></div>`).join('')}</div></div></div>`; }).join('')}
-      <p class="note" style="margin-top:24px">Pas de badge ni de classement : seule votre progression compte, et elle n’est visible que par vous.</p></section></div>`;
+    <section class="fsec" aria-labelledby="fGoing"><div class="fsec-h"><h2 class="h3" id="fGoing">${going.length ? 'Vos parcours en cours' : list.length ? 'Votre prochain parcours' : 'Vos parcours'}</h2><a class="link has-arrow" href="#parcours">Voir tous les parcours ${ARW}</a></div>
+      ${list.length ? `<ul class="ledger">${list.map(row).join('')}</ul>` : `<p class="muted">${finished.length === all.length ? 'Vous avez terminé tous vos parcours. Les questions de révision continuent de revenir ici.' : 'Aucun parcours en cours. Choisissez-en un dans la liste des parcours.'}</p>`}
+      ${finished.length ? `<p class="small muted row" style="gap:8px">${ic('check', 'i-sm')}${finished.length > 1 ? 'Parcours terminés' : 'Parcours terminé'} : ${finished.map(c => esc(c.id === 'tc' ? 'Tronc commun' : AI[c.id].name)).join(', ')}.</p>` : ''}</section>
+    <p class="note" style="margin-top:32px">Pas de badge ni de classement : seule votre progression compte, et elle n’est visible que par vous.</p></div>`;
+}
+
+/* Tous les parcours : chaque parcours est un volet, fermé par défaut ; à l’intérieur, chaque module (ou chapitre) est aussi un volet.
+   Les parcours terminés descendent en fin de liste. Les leçons d’un volet fermé sont hors d’atteinte du clavier (inert). */
+const panes = {}; /* état ouvert/fermé des volets, gardé le temps de la visite */
+const isOpenPane = key => key in panes ? panes[key] : key === 'intro'; /* seule la vidéo d’introduction est ouverte au départ */
+function courseHead(key, lead, name, meta, pct, extra = '') {
+  return `<button class="course-h" type="button" aria-expanded="${isOpenPane(key)}" aria-controls="pb-${key}" data-pane="${key}">${lead}
+    <span class="stack" style="gap:2px;min-width:0"><span class="h4">${name}${extra}</span><span class="small muted">${meta}</span></span>
+    <span class="stack" style="gap:6px"><span class="bar"><i data-v="${pct / 100}"></i></span><span class="pct">${pct} %</span></span><svg class="i chev" aria-hidden="true"><use href="#i-chev"/></svg></button>`;
+}
+const paneBody = (key, cls, html) => `<div class="${cls}" id="pb-${key}"${isOpenPane(key) ? '' : ' inert'}><div>${html}</div></div>`;
+/* Un module : son numéro, son titre, une case cochée quand toutes ses leçons sont faites, puis ses leçons */
+function modulePane(key, n, title, lessons, nid) {
+  const d = lessons.filter(l => S.done.includes(l.id)).length, full = d === lessons.length, min = lessons.reduce((s, l) => s + l.dur, 0);
+  return `<div class="mod${full ? ' is-done' : ''}"><button class="mod-t" type="button" aria-expanded="${isOpenPane(key)}" aria-controls="pb-${key}" data-pane="${key}">
+      <span class="mod-n" aria-hidden="true">${n}</span>
+      <span class="stack" style="gap:2px;min-width:0"><span class="mod-name">${esc(title)}</span><span class="small muted">${d} sur ${plural(lessons.length, 'leçon', 'leçons')} · ${min} min</span></span>
+      <span class="mod-box" aria-hidden="true">${full ? ic('check', 'i-sm') : ''}</span><span class="sr-only">${full ? 'Module terminé' : 'Module en cours'}</span>
+      <svg class="i chev" aria-hidden="true"><use href="#i-chev"/></svg></button>
+    ${paneBody(key, 'pane-b', `<ul class="lessons">${lessons.map(l => lessonRow(l, nid)).join('')}</ul>`)}</div>`;
+}
+function tcBlock(nid) {
+  const tc = courseStats('tc');
+  const mods = TRONC.mods.map((m, k) => modulePane('tcm' + k, k + 1, `Module ${k + 1} · ${m}`, TRONC.lessons.filter(l => l.mod === k).map(l => LESSONS[l.id]), nid)).join('');
+  const intro = `<div class="intro"><button class="intro-t" type="button" aria-expanded="${isOpenPane('intro')}" aria-controls="pb-intro" data-pane="intro">${ic('play', 'i-sm')}<span>Vidéo d’introduction · ${INTRO_VIDEO.dur}</span><span class="intro-hint">${isOpenPane('intro') ? 'Masquer' : 'Afficher'}</span><svg class="i chev" aria-hidden="true"><use href="#i-chev"/></svg></button>
+    ${paneBody('intro', 'pane-b', `<div class="fintro">
+      <div class="fintro-media"><video class="fintro-v" controls playsinline preload="none" poster="${INTRO_VIDEO.poster}" aria-label="Vidéo d’introduction au tronc commun, avec voix off"><source src="${INTRO_VIDEO.src}" type="video/mp4"><track kind="captions" srclang="fr" label="Français" src="${INTRO_VIDEO.src.replace('.mp4', '.vtt')}"></video>
+        <a class="fintro-cta" href="#lecon-${TRONC.lessons[0].id}" hidden style="left:${INTRO_VIDEO.cta.left}%;top:${INTRO_VIDEO.cta.top}%;width:${INTRO_VIDEO.cta.width}%;height:${INTRO_VIDEO.cta.height}%"><span class="sr-only">Commencer la leçon 1 : ${esc(TRONC.lessons[0].title)}</span></a></div>
+      <div class="stack" style="gap:8px;min-width:0"><h3 class="h4">Pourquoi suivre ce parcours</h3><p class="small muted">Ce que l’IA sait déjà faire, les cinq modules du parcours et la méthode des leçons, en une minute. Montez le son : une voix vous guide.</p></div></div>`)}</div>`;
+  return `<div class="course is-tc">${courseHead('tc', `<span class="ico" aria-hidden="true">${tc.d === tc.n ? ic('check') : ic('cap')}</span>`, `Tronc commun · ${esc(TRONC.name)}`,
+    `${plural(tc.n, 'leçon', 'leçons')} · ${TRONC.mods.length} modules · ${tc.min} min en tout`, tc.pct, tc.d === 0 ? ' <span class="tag">Recommandé</span>' : '')}
+    ${paneBody('tc', 'course-b', intro + mods)}</div>`;
+}
+function aiBlock(a, nid) {
+  const c = COURSES[a.id], st = courseStats(a.id);
+  return `<div class="course">${courseHead(a.id, tile(a.id), esc(c.name), `${c.chapters.length} chapitres · ${plural(st.n, 'leçon', 'leçons')} · ${st.min} min`, st.pct)}
+    ${paneBody(a.id, 'course-b', c.chapters.map((ch, k) => modulePane(`${a.id}-${k}`, k + 1, ch.t, ch.l.map(l => LESSONS[l.id]), nid)).join(''))}</div>`;
+}
+function viewCatalog(v, nl) {
+  const nid = nl && nl.id, tc = courseStats('tc'), tcDone = tc.d === tc.n;
+  const ais = orderedCourses(), done = a => { const s = courseStats(a.id); return s.n && s.d === s.n; };
+  const todo = ais.filter(a => !done(a)), finished = ais.filter(done);
+  const total = tc.n + ais.reduce((s, a) => s + courseStats(a.id).n, 0);
+  v.innerHTML = `<div class="wrap"><header class="phead"><h1 class="h1 split">Tous les parcours</h1>
+    <p class="lead">Commencez par le tronc commun, puis suivez le parcours des IA que vous utilisez. Chaque leçon dure de 3 à 5 minutes et part d’une tâche concrète.</p>${trainTabs('parcours')}</header>
+    <p class="small muted cat-sum">${1 + ais.length} parcours · ${plural(total, 'leçon', 'leçons')}</p>
+    ${tcDone ? '' : `<section class="fsec" aria-labelledby="tcLabel"><h2 class="label" id="tcLabel">Pour commencer</h2>${tcBlock(nid)}</section>`}
+    <section class="fsec" aria-labelledby="aiLabel"><h2 class="h3" id="aiLabel">Parcours par IA</h2>
+      <p class="small muted" style="margin-top:-6px">Prise en main, paramétrage, usages concrets, aller plus loin.${tcDone ? '' : ' Nous vous conseillons de terminer d’abord le tronc commun.'}</p>
+      ${todo.length ? todo.map(a => aiBlock(a, nid)).join('') : `<p class="muted">${ais.length ? 'Vous avez terminé tous les parcours par IA.' : 'Aucune IA n’est autorisée pour l’instant. Votre dirigeant peut en ajouter depuis l’espace dirigeant.'}</p>`}
+    </section>
+    ${tcDone || finished.length ? `<section class="fsec" aria-labelledby="doneLabel"><h2 class="h3" id="doneLabel">Parcours terminés</h2>
+      ${tcDone ? tcBlock(nid) : ''}${finished.map(a => aiBlock(a, nid)).join('')}</section>` : ''}
+    <p class="note" style="margin-top:32px">Pas de badge ni de classement : seule votre progression compte, et elle n’est visible que par vous.</p></div>`;
+  $$('[data-pane]', v).forEach(b => b.addEventListener('click', () => {
+    const o = b.getAttribute('aria-expanded') !== 'true', body = b.nextElementSibling;
+    b.setAttribute('aria-expanded', o); body.inert = !o; panes[b.dataset.pane] = o;
+    const hint = $('.intro-hint', b); if (hint) hint.textContent = o ? 'Masquer' : 'Afficher';
+    if (!o) $$('video', body).forEach(x => x.pause());
+  }));
+  /* Le lien « Commencer » n’existe que pendant que le bouton est visible dans la vidéo */
+  $$('.fintro-media', v).forEach(m => {
+    const vid = $('video', m), cta = $('.fintro-cta', m);
+    const sync = () => { cta.hidden = vid.currentTime < INTRO_VIDEO.cta.from; };
+    ['timeupdate', 'seeked', 'ended', 'loadedmetadata'].forEach(ev => vid.addEventListener(ev, sync));
+    cta.addEventListener('click', () => vid.pause());
+  });
+}
+
+function viewTraining(openId) {
+  const h = decodeURIComponent(location.hash.slice(1));
+  if (h === 'formations' || h === 'parcours') trainTab = h;
+  const v = $('#view'), nl = nextLesson();
+  if (trainTab === 'parcours') viewCatalog(v, nl); else viewDashboard(v, nl);
   splitWords($('.split', v));
   const rg = $('#revGo', v); if (rg) rg.addEventListener('click', openReview);
   const rs = $('#revSkip', v); if (rs) rs.addEventListener('click', () => {
     Object.values(S.rev).forEach(r => { if (r.due != null) r.due -= DAY; }); save();
     const y = scrollY; renderView(true); window.scrollTo(0, y); toast('Démonstration : une journée a passé.', 'clock');
   });
-  $$('[data-course]', v).forEach(b => b.addEventListener('click', () => { const o = b.getAttribute('aria-expanded') !== 'true'; b.setAttribute('aria-expanded', o); o ? openCourses.add(b.dataset.course) : openCourses.delete(b.dataset.course); }));
   if (openId) setTimeout(() => openLesson(openId), RM.matches ? 0 : 250);
 }
 /* Schémas des leçons : les branches emboîtées de l’IA, le trajet d’une demande par une API */
@@ -85,7 +177,7 @@ function openLesson(id) {
   const done = S.done.includes(id);
   const m = openModal(`<div class="modal-top"><span class="small muted">${esc(courseName(l))} · ${esc(l.chap)}</span><button class="rp-close" data-close aria-label="Fermer la leçon">${ic('x')}</button></div>
     <div class="modal-in lesson-body">${lessonContent(l, done)}</div>`,
-    {wide:true, label:l.title, onClose:() => { if (location.hash.startsWith('#lecon-')) history.replaceState(null, '', '#formations'); }});
+    {wide:true, label:l.title, onClose:() => { if (location.hash.startsWith('#lecon-')) history.replaceState(null, '', '#' + trainTab); }});
   const cp = $('#lpCopy', m); if (cp) cp.addEventListener('click', () => copyText(l.practice.prompt, cp, $('#lpText', m)));
   const go = $('.lpart a[href^="#"]', m); if (go) go.addEventListener('click', () => closeModal());
   if (l.quiz) bindQuiz(m, l.quiz, () => { const b = $('#doneBtn', m); b.disabled = false; const h = $('#doneHint', m); if (h) h.remove(); });
@@ -106,7 +198,7 @@ function openLesson(id) {
     requestAnimationFrame(() => requestAnimationFrame(() => { const b = $('#doneBar', m); b && b.style.setProperty('--v', g.pct / 100); }));
     const gn = $('#goNext', m); if (gn) { gn.focus(); gn.addEventListener('click', () => openLesson(nx.id)); }
     const h = location.hash.slice(1);
-    if (h === 'formations' || h.startsWith('lecon-') || h.startsWith('ia-')) setTimeout(() => { const y = scrollY; renderView(true); window.scrollTo(0, y); }, 50);
+    if (h === 'formations' || h === 'parcours' || h.startsWith('lecon-') || h.startsWith('ia-')) setTimeout(() => { const y = scrollY; renderView(true); window.scrollTo(0, y); }, 50);
   });
 }
 
@@ -126,7 +218,7 @@ function openReview() {
   const ids = dueReviews(); if (!ids.length) return;
   let k = 0, good = 0; const miss = [];
   const m = openModal(`<div class="modal-top"><span class="small muted">Révision · ${ids.length} question${ids.length > 1 ? 's' : ''}</span><button class="rp-close" data-close aria-label="Fermer la révision">${ic('x')}</button></div>
-    <div class="modal-in rev-body" id="revBody"></div>`, {wide:true, label:'Révision', onClose:() => { if (location.hash === '#formations') { const y = scrollY; renderView(true); window.scrollTo(0, y); } }});
+    <div class="modal-in rev-body" id="revBody"></div>`, {wide:true, label:'Révision', onClose:() => { if (location.hash === '#formations' || location.hash === '#parcours') { const y = scrollY; renderView(true); window.scrollTo(0, y); } }});
   const body = $('#revBody', m);
   const show = () => {
     if (k >= ids.length) return finish();

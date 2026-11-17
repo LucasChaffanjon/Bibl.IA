@@ -1,11 +1,11 @@
-/* ——— Routage (#accueil, #bibliotheque, #ia-…, #formations, #lecon-…, #nouveautes, #profil, #dirigeant) ——— */
-const ROUTES = {accueil:viewHome, bibliotheque:viewLibrary, formations:viewTraining, nouveautes:viewUpdates, 'mises-a-jour':viewUpdates, profil:viewProfile, dirigeant:viewBoss};
+/* ——— Routage (#accueil, #bibliotheque, #ia-…, #formations, #parcours, #lecon-…, #nouveautes, #profil, #dirigeant) ——— */
+const ROUTES = {accueil:viewHome, bibliotheque:viewLibrary, formations:viewTraining, parcours:viewTraining, nouveautes:viewUpdates, 'mises-a-jour':viewUpdates, profil:viewProfile, dirigeant:viewBoss};
 function resolveRoute() {
   const h = decodeURIComponent(location.hash.slice(1));
   if (h.startsWith('ia-') && AI[h.slice(3)]) return {fn:viewFiche, arg:h.slice(3), nav:'bibliotheque'};
   if (h.startsWith('lecon-') && LESSONS[h.slice(6)]) { const l = LESSONS[h.slice(6)]; return {fn:viewTraining, arg:l.course === 'tc' || isAllowed(l.course) ? l.id : null, nav:'formations'}; }
   const r = ROUTES[h] ? h : 'accueil';
-  return {fn:ROUTES[r], nav:r === 'mises-a-jour' ? 'nouveautes' : r};
+  return {fn:ROUTES[r], nav:r === 'mises-a-jour' ? 'nouveautes' : r === 'parcours' ? 'formations' : r};
 }
 function renderView(keep) {
   const {fn, arg, nav} = resolveRoute(), v = $('#view');
