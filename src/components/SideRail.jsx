@@ -1,0 +1,5 @@
+import React from "react";
+
+export default function SideRail() {
+  return <div style={{ display: "contents" }} dangerouslySetInnerHTML={{ __html: "<nav aria-label=\"Mes IA\" class=\"rail\" id=\"rail\">\n<a class=\"rail-head\" href=\"#bibliotheque\"><svg aria-hidden=\"true\" class=\"i\"><use href=\"#i-book\"></use></svg><span>Mes IA</span></a>\n<ul class=\"dock\" id=\"railDock\"></ul>\n<button aria-controls=\"dockPop\" aria-expanded=\"false\" aria-label=\"Personnaliser mes IA\" class=\"dock-item rail-add\" id=\"dockEdit\" type=\"button\"><span class=\"add-ico\"><svg aria-hidden=\"true\" class=\"i\"><use href=\"#i-plus\"></use></svg></span><span aria-hidden=\"true\" class=\"dock-tip\"><b>Personnaliser</b><span>Ajouter ou retirer des IA</span></span></button>\n<div aria-hidden=\"true\" class=\"rail-trash\" id=\"railTrash\"><svg class=\"i\"><use href=\"#i-trash\"></use></svg><span>Retirer</span></div>\n</nav><div aria-label=\"Personnaliser mes IA\" class=\"dock-pop\" hidden=\"\" id=\"dockPop\" role=\"dialog\"></div>" }} />;
+}
