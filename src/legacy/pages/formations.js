@@ -139,10 +139,11 @@ function bindPlayer(p) {
   const vid = $('video', p), cta = $('.fintro-cta', p), seek = $('.vseek', p), time = $('.vtime', p), btn = k => $(`[data-v="${k}"]`, p);
   const fmt = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
   const dur = () => (isFinite(vid.duration) && vid.duration) || INTRO_VIDEO.seconds;
+  let shown = '';
   const paint = () => {
-    const playing = !vid.paused && !vid.ended, b = btn('play');
-    b.innerHTML = playing ? VICO.pause : vid.ended ? VICO.replay : VICO.play;
-    b.setAttribute('aria-label', playing ? 'Mettre en pause' : vid.ended ? 'Revoir' : 'Lire');
+    const playing = !vid.paused && !vid.ended, b = btn('play'), st = playing ? 'pause' : vid.ended ? 'replay' : 'play';
+    /* On ne redessine le bouton que s’il change : le redessiner à chaque instant de lecture faisait perdre des clics */
+    if (st !== shown) { shown = st; b.innerHTML = VICO[st]; b.setAttribute('aria-label', playing ? 'Mettre en pause' : vid.ended ? 'Revoir' : 'Lire'); }
     p.dataset.state = playing ? 'playing' : vid.currentTime > 0 ? 'paused' : 'idle';
     seek.max = dur(); seek.value = vid.currentTime; seek.style.setProperty('--p', `${vid.currentTime / dur() * 100}%`);
     time.textContent = `${fmt(vid.currentTime)} / ${fmt(dur())}`;
@@ -220,10 +221,10 @@ function lessonContent(l, done) {
     <section class="lpart"><h3 class="lpart-h"><span class="lpart-n">1</span>Comprendre</h3>
       <ul class="learn">${l.learn.map(s => `<li>${esc(s)}</li>`).join('')}</ul>${l.fig ? FIGS[l.fig]() : ''}
       <div class="example"><p class="label" style="margin-bottom:8px">Exemple</p>${esc(l.ex)}</div></section>
-    <section class="lpart"><h3 class="lpart-h"><span class="lpart-n">2</span>À vous, tout de suite</h3><p>${esc(p.task)}</p>
+    ${l.acts ? `<section class="lpart"><h3 class="lpart-h"><span class="lpart-n">2</span>À vous</h3><div class="acts">${actsHTML(l)}</div></section>` : `<section class="lpart"><h3 class="lpart-h"><span class="lpart-n">2</span>À vous, tout de suite</h3><p>${esc(p.task)}</p>
       ${p.prompt ? `<div class="lprompt"><pre id="lpText">${esc(p.prompt)}</pre><button class="btn btn-quiet copy" type="button" id="lpCopy">${ic('copy', 'i-sm')}Copier</button></div>`
         : `<a class="link has-arrow" href="${p.go.href}">${esc(p.go.label)} ${ARW}</a>`}
-      <div class="lcheck"><p class="small muted">Une fois fait, vérifiez :</p><ul>${p.check.map(c => `<li><label class="lchk"><input type="checkbox"><span>${esc(c)}</span></label></li>`).join('')}</ul></div></section>
+      <div class="lcheck"><p class="small muted">Une fois fait, vérifiez :</p><ul>${p.check.map(c => `<li><label class="lchk"><input type="checkbox"><span>${esc(c)}</span></label></li>`).join('')}</ul></div></section>`}
     <section class="lpart"><h3 class="lpart-h"><span class="lpart-n">3</span>Testez-vous</h3>${quizHTML(l.quiz)}</section>
     ${keep}
     <div class="stack" style="gap:10px"><div class="row"><button class="btn btn-primary has-arrow" type="button" id="doneBtn" ${done ? '' : 'disabled'}>${done ? 'Leçon déjà terminée' : 'J’ai terminé cette leçon'} ${ARW}</button><button class="btn btn-ghost" type="button" data-close>Plus tard</button></div>
@@ -236,6 +237,7 @@ function openLesson(id) {
     <div class="modal-in lesson-body">${lessonContent(l, done)}</div>`,
     {wide:true, label:l.title, onClose:() => { if (location.hash.startsWith('#lecon-')) history.replaceState(null, '', '#' + trainTab); }});
   const cp = $('#lpCopy', m); if (cp) cp.addEventListener('click', () => copyText(l.practice.prompt, cp, $('#lpText', m)));
+  bindActs(m, l);
   const go = $('.lpart a[href^="#"]', m); if (go) go.addEventListener('click', () => closeModal());
   if (l.quiz) bindQuiz(m, l.quiz, () => { const b = $('#doneBtn', m); b.disabled = false; const h = $('#doneHint', m); if (h) h.remove(); });
   $('#doneBtn', m).addEventListener('click', () => {

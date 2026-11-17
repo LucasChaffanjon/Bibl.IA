@@ -1,9 +1,13 @@
+/* Les scripts du site sont servis depuis public/legacy (adresse /legacy/…), pour qu'ils existent aussi
+   une fois le site construit et mis en ligne. Les fichiers à modifier sont donc ceux de public/legacy. */
 const files = [
   "/legacy/data/catalogue.js",
+  "/legacy/data/activites-tronc.js",
   "/legacy/core/utils-state.js",
   "/legacy/features/recommandations.js",
   "/legacy/pages/accueil.js",
   "/legacy/pages/bibliotheque-et-fiches.js",
+  "/legacy/features/activites.js",
   "/legacy/pages/formations.js",
   "/legacy/pages/nouveautes.js",
   "/legacy/features/questionnaires.js",
@@ -12,11 +16,11 @@ const files = [
   "/legacy/core/navigation.js",
 ];
 
-let loading;
-
+/* La promesse est gardée sur window, et non dans ce module : après une modification en cours de développement,
+   Vite recharge ce module, et les scripts seraient sinon injectés une seconde fois (« déjà déclaré »). */
 export function loadOriginalFeatures() {
-  if (!loading) {
-    loading = files.reduce(
+  if (!window.__biblLoading) {
+    window.__biblLoading = files.reduce(
       (promise, path) =>
         promise.then(
           () =>
@@ -37,5 +41,5 @@ export function loadOriginalFeatures() {
     );
   }
 
-  return loading;
+  return window.__biblLoading;
 }
