@@ -712,12 +712,37 @@ html.grabbing,html.grabbing *{cursor:grabbing!important}
 @media (hover:hover){.intro-t:hover{background:var(--sunk)}}
 .intro-hint{margin-left:auto;font-size:14px;font-weight:500;color:var(--fg-3)}
 .fintro{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:24px;align-items:center;padding:4px 22px 22px}
-.fintro-media{position:relative;min-width:0}
+/* Lecteur de la vidéo d’introduction. L’image de la vidéo est toujours sombre : ses commandes sont claires dans les deux thèmes.
+   En plein écran, c’est tout le lecteur qui s’agrandit, lien « Commencer » compris. */
+.vplayer{position:relative;min-width:0;border-radius:12px;overflow:hidden;background:#0B1511;box-shadow:var(--shadow-1);color:#fff}
+.vstage{position:relative;width:100%;max-width:100%;aspect-ratio:16/9}
+.fintro-v{display:block;width:100%;height:100%;object-fit:cover;cursor:pointer}
+.vplayer:fullscreen{display:grid;place-items:center;border-radius:0;background:#000}
+.vplayer:-webkit-full-screen{display:grid;place-items:center;border-radius:0;background:#000;width:100%;height:100%}
+.vplayer:fullscreen .vstage{width:min(100vw,calc(100vh * 16 / 9))}
+.vplayer:-webkit-full-screen .vstage{width:min(100vw,calc(100vh * 16 / 9))}
+.vplayer:fullscreen .vbar{padding:40px 24px 16px}
+.vbig{position:absolute;z-index:2;left:50%;top:50%;width:72px;height:72px;margin:-36px 0 0 -36px;border-radius:50%;display:grid;place-items:center;background:#FBE48F;color:#2A2300;box-shadow:0 10px 30px -8px rgba(0,0,0,.6);transition:transform .2s var(--ease-out)}
+.vbig svg{width:30px;height:30px;fill:currentColor;margin-left:4px}
+@media (hover:hover){.vbig:hover{transform:scale(1.06)}}
+.vbig:active{transform:scale(.96)}
+.vplayer:not([data-state="idle"]) .vbig{display:none}
+.vbar{position:absolute;z-index:2;left:0;right:0;bottom:0;display:flex;align-items:center;gap:4px;padding:28px 10px 8px;background:linear-gradient(rgba(0,0,0,0),rgba(0,0,0,.7));transition:opacity .2s ease}
+@media (hover:hover){.vplayer[data-state="playing"]:not(:hover):not(:focus-within) .vbar{opacity:0}}
+.vbtn{width:36px;height:36px;flex:none;display:grid;place-items:center;border-radius:8px;color:#fff;transition:background-color .12s ease}
+.vbtn svg{width:20px;height:20px;fill:currentColor}
+@media (hover:hover){.vbtn:hover{background:rgba(255,255,255,.16)}}
+.vcc{font-size:12px;font-weight:700;letter-spacing:.02em}
+.vcc[aria-pressed="true"]{background:rgba(255,255,255,.28)}
+.vtime{flex:none;padding:0 6px;font-size:13px;font-variant-numeric:tabular-nums;color:rgba(255,255,255,.9);white-space:nowrap}
+.vseek{flex:1;min-width:40px;height:20px;margin:0 6px;accent-color:#FBE48F;cursor:pointer}
+.vbtn:focus-visible,.vseek:focus-visible,.vbig:focus-visible{outline:2px solid #FBE48F;outline-offset:2px}
+@media (pointer:coarse){.vbtn{width:44px;height:44px}}
+@media (max-width:420px){.vtime{display:none}}
 /* Lien posé sur le bouton « Commencer » de la fin de la vidéo : invisible, il s’éclaire au survol et au clavier */
 .fintro-cta{position:absolute;z-index:1;border-radius:10px;cursor:pointer;transition:box-shadow .15s ease}
 @media (hover:hover){.fintro-cta:hover{box-shadow:0 0 0 3px rgba(251,228,143,.6),0 0 24px rgba(251,228,143,.35)}}
 .fintro-cta:focus-visible{outline:3px solid var(--hl);outline-offset:3px}
-.fintro-v{display:block;width:100%;max-width:100%;aspect-ratio:16/9;border-radius:12px;background:#0B1511;object-fit:cover;box-shadow:var(--shadow-1)}
 @media (max-width:760px){.fintro{grid-template-columns:minmax(0,1fr);gap:16px;padding:4px 16px 16px}.intro-t{padding:10px 16px}}
 
 /* Modules et chapitres : un volet chacun, avec une case cochée quand toutes les leçons sont faites */

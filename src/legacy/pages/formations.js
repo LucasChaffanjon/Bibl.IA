@@ -5,7 +5,7 @@
 let trainTab = 'formations'; /* dernière vue ouverte : on y revient en fermant une leçon */
 /* cta : le bouton « Commencer » de la fin de la vidéo. Une vidéo ne contient pas de lien cliquable : on pose un vrai lien
    par-dessus, à la même place (en % de l’image, mesurée sur la dernière image), à partir de la seconde où il apparaît. */
-const INTRO_VIDEO = {src:'/videos/premiers-pas-avec-l-ia.mp4', poster:'/videos/premiers-pas-avec-l-ia.jpg', dur:'1 min 22', cta:{from:77.85, left:43.02, top:61.11, width:15.21, height:8.15}};
+const INTRO_VIDEO = {src:'/videos/premiers-pas-avec-l-ia.mp4', poster:'/videos/premiers-pas-avec-l-ia.jpg', dur:'1 min 22', seconds:82.33, cta:{from:77.85, left:43.02, top:61.11, width:15.21, height:8.15}};
 const plural = (n, one, many) => `${n} ${n > 1 ? many : one}`;
 function courseStats(id) {
   const ls = courseLessons(id).map(l => LESSONS[l.id]);
@@ -75,8 +75,18 @@ function tcBlock(nid) {
   const mods = TRONC.mods.map((m, k) => modulePane('tcm' + k, k + 1, `Module ${k + 1} · ${m}`, TRONC.lessons.filter(l => l.mod === k).map(l => LESSONS[l.id]), nid)).join('');
   const intro = `<div class="intro"><button class="intro-t" type="button" aria-expanded="${isOpenPane('intro')}" aria-controls="pb-intro" data-pane="intro">${ic('play', 'i-sm')}<span>Vidéo d’introduction · ${INTRO_VIDEO.dur}</span><span class="intro-hint">${isOpenPane('intro') ? 'Masquer' : 'Afficher'}</span><svg class="i chev" aria-hidden="true"><use href="#i-chev"/></svg></button>
     ${paneBody('intro', 'pane-b', `<div class="fintro">
-      <div class="fintro-media"><video class="fintro-v" controls playsinline preload="none" poster="${INTRO_VIDEO.poster}" aria-label="Vidéo d’introduction au tronc commun, avec voix off"><source src="${INTRO_VIDEO.src}" type="video/mp4"><track kind="captions" srclang="fr" label="Français" src="${INTRO_VIDEO.src.replace('.mp4', '.vtt')}"></video>
-        <a class="fintro-cta" href="#lecon-${TRONC.lessons[0].id}" hidden style="left:${INTRO_VIDEO.cta.left}%;top:${INTRO_VIDEO.cta.top}%;width:${INTRO_VIDEO.cta.width}%;height:${INTRO_VIDEO.cta.height}%"><span class="sr-only">Commencer la leçon 1 : ${esc(TRONC.lessons[0].title)}</span></a></div>
+      <div class="vplayer" data-state="idle">
+        <div class="vstage"><video class="fintro-v" playsinline preload="none" poster="${INTRO_VIDEO.poster}" aria-label="Vidéo d’introduction au tronc commun, avec voix off"><source src="${INTRO_VIDEO.src}" type="video/mp4"><track kind="captions" srclang="fr" label="Français" src="${INTRO_VIDEO.src.replace('.mp4', '.vtt')}"></video>
+          <a class="fintro-cta" href="#lecon-${TRONC.lessons[0].id}" hidden style="left:${INTRO_VIDEO.cta.left}%;top:${INTRO_VIDEO.cta.top}%;width:${INTRO_VIDEO.cta.width}%;height:${INTRO_VIDEO.cta.height}%"><span class="sr-only">Commencer la leçon 1 : ${esc(TRONC.lessons[0].title)}</span></a></div>
+        <button class="vbig" type="button" aria-label="Lire la vidéo d’introduction">${VICO.play}</button>
+        <div class="vbar">
+          <button class="vbtn" type="button" data-v="play" aria-label="Lire">${VICO.play}</button>
+          <span class="vtime">0:00</span>
+          <input class="vseek" type="range" min="0" max="${INTRO_VIDEO.seconds}" step="0.1" value="0" aria-label="Position dans la vidéo">
+          <button class="vbtn" type="button" data-v="mute" aria-label="Couper le son">${VICO.sound}</button>
+          <button class="vbtn vcc" type="button" data-v="cc" aria-pressed="false" aria-label="Sous-titres">CC</button>
+          <button class="vbtn" type="button" data-v="fs" aria-label="Plein écran">${VICO.fsIn}</button>
+        </div></div>
       <div class="stack" style="gap:8px;min-width:0"><h3 class="h4">Pourquoi suivre ce parcours</h3><p class="small muted">Ce que l’IA sait déjà faire, les cinq modules du parcours et la méthode des leçons, en une minute. Montez le son : une voix vous guide.</p></div></div>`)}</div>`;
   return `<div class="course is-tc">${courseHead('tc', `<span class="ico" aria-hidden="true">${tc.d === tc.n ? ic('check') : ic('cap')}</span>`, `Tronc commun · ${esc(TRONC.name)}`,
     `${plural(tc.n, 'leçon', 'leçons')} · ${TRONC.mods.length} modules · ${tc.min} min en tout`, tc.pct, tc.d === 0 ? ' <span class="tag">Recommandé</span>' : '')}
@@ -109,13 +119,60 @@ function viewCatalog(v, nl) {
     const hint = $('.intro-hint', b); if (hint) hint.textContent = o ? 'Masquer' : 'Afficher';
     if (!o) $$('video', body).forEach(x => x.pause());
   }));
-  /* Le lien « Commencer » n’existe que pendant que le bouton est visible dans la vidéo */
-  $$('.fintro-media', v).forEach(m => {
-    const vid = $('video', m), cta = $('.fintro-cta', m);
-    const sync = () => { cta.hidden = vid.currentTime < INTRO_VIDEO.cta.from; };
-    ['timeupdate', 'seeked', 'ended', 'loadedmetadata'].forEach(ev => vid.addEventListener(ev, sync));
-    cta.addEventListener('click', () => vid.pause());
+  $$('.vplayer', v).forEach(bindPlayer);
+}
+
+/* Lecteur de la vidéo d’introduction. Les commandes du navigateur mettent la vidéo seule en plein écran, sans le lien
+   « Commencer » posé dessus : ce lecteur met en plein écran le bloc entier (vidéo + lien), qui reste donc cliquable. */
+const VICO = {
+  play:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4l13 8-13 8z"/></svg>',
+  pause:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>',
+  replay:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5a7 7 0 1 1-6.6 4.7l1.9.6A5 5 0 1 0 12 7v3L7.5 6 12 2z"/></svg>',
+  sound:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9h4l5-4v14l-5-4H3z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+  muted:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9h4l5-4v14l-5-4H3z"/><path d="M16 9l6 6M22 9l-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+  fsIn:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h6v2H6v4H4zm10 0h6v6h-2V6h-4zM4 14h2v4h4v2H4zm14 0h2v6h-6v-2h4z"/></svg>',
+  fsOut:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h2v6H4V8h4zm6 0h2v4h4v2h-6zM4 14h6v6H8v-4H4zm10 0h6v2h-4v4h-2z"/></svg>'
+};
+const fsElement = () => document.fullscreenElement || document.webkitFullscreenElement || null;
+const fsExit = () => { const f = document.exitFullscreen || document.webkitExitFullscreen; if (f) Promise.resolve(f.call(document)).catch(() => {}); };
+function bindPlayer(p) {
+  const vid = $('video', p), cta = $('.fintro-cta', p), seek = $('.vseek', p), time = $('.vtime', p), btn = k => $(`[data-v="${k}"]`, p);
+  const fmt = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+  const dur = () => (isFinite(vid.duration) && vid.duration) || INTRO_VIDEO.seconds;
+  const paint = () => {
+    const playing = !vid.paused && !vid.ended, b = btn('play');
+    b.innerHTML = playing ? VICO.pause : vid.ended ? VICO.replay : VICO.play;
+    b.setAttribute('aria-label', playing ? 'Mettre en pause' : vid.ended ? 'Revoir' : 'Lire');
+    p.dataset.state = playing ? 'playing' : vid.currentTime > 0 ? 'paused' : 'idle';
+    seek.max = dur(); seek.value = vid.currentTime; seek.style.setProperty('--p', `${vid.currentTime / dur() * 100}%`);
+    time.textContent = `${fmt(vid.currentTime)} / ${fmt(dur())}`;
+    /* Le lien « Commencer » n’existe que pendant que le bouton est visible dans la vidéo */
+    cta.hidden = vid.currentTime < INTRO_VIDEO.cta.from;
+  };
+  ['play', 'pause', 'timeupdate', 'seeked', 'ended', 'loadedmetadata', 'durationchange'].forEach(e => vid.addEventListener(e, paint));
+  const toggle = () => { if (vid.paused || vid.ended) vid.play().catch(() => {}); else vid.pause(); };
+  [btn('play'), $('.vbig', p), vid].forEach(el => el.addEventListener('click', toggle));
+  seek.addEventListener('input', () => { vid.currentTime = +seek.value; paint(); });
+  btn('mute').addEventListener('click', () => {
+    vid.muted = !vid.muted; const b = btn('mute');
+    b.innerHTML = vid.muted ? VICO.muted : VICO.sound; b.setAttribute('aria-label', vid.muted ? 'Remettre le son' : 'Couper le son');
   });
+  btn('cc').addEventListener('click', () => {
+    const tr = vid.textTracks[0], on = btn('cc').getAttribute('aria-pressed') !== 'true';
+    if (tr) tr.mode = on ? 'showing' : 'hidden'; btn('cc').setAttribute('aria-pressed', on);
+  });
+  btn('fs').addEventListener('click', () => {
+    if (fsElement() === p) return fsExit();
+    const req = p.requestFullscreen || p.webkitRequestFullscreen;
+    if (req) Promise.resolve(req.call(p)).catch(() => {});
+    else if (vid.webkitEnterFullscreen) vid.webkitEnterFullscreen(); /* iPhone : seul le plein écran de la vidéo existe */
+  });
+  const onFs = () => { const on = fsElement() === p, b = btn('fs'); b.innerHTML = on ? VICO.fsOut : VICO.fsIn; b.setAttribute('aria-label', on ? 'Quitter le plein écran' : 'Plein écran'); };
+  document.addEventListener('fullscreenchange', onFs); document.addEventListener('webkitfullscreenchange', onFs);
+  onCleanup(() => { document.removeEventListener('fullscreenchange', onFs); document.removeEventListener('webkitfullscreenchange', onFs); if (fsElement() === p) fsExit(); });
+  /* Au clic sur « Commencer » : pause, sortie du plein écran, puis la leçon s’ouvre par-dessus la page */
+  cta.addEventListener('click', () => { vid.pause(); if (fsElement() === p) fsExit(); });
+  paint();
 }
 
 function viewTraining(openId) {
