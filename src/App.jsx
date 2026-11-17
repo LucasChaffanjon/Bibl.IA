@@ -18,6 +18,7 @@ function selectedPage(hash) {
   const route = decodeURIComponent((hash || '').replace(/^#/, ''));
   if (route.startsWith('ia-')) return 'fiche';
   if (route.startsWith('lecon-')) return 'lecon';
+  if (route === 'parcours') return 'formations'; // « Tous les parcours » : seconde vue de la rubrique Formations
   if (['accueil','bibliotheque','formations','nouveautes','mises-a-jour','profil','dirigeant'].includes(route)) return route === 'mises-a-jour' ? 'nouveautes' : route;
   return 'accueil';
 }
