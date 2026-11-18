@@ -13,6 +13,9 @@ import Nouveautes from './pages/Nouveautes';
 import Profil from './pages/Profil';
 import Dirigeant from './pages/Dirigeant';
 import { loadOriginalFeatures } from './legacy/load';
+import Decouverte from './public/Decouverte';
+import Inscription from './public/Inscription';
+import { estPublique, lireHash } from './public/commun';
 
 function selectedPage(hash) {
   const route = decodeURIComponent((hash || '').replace(/^#/, ''));
@@ -37,18 +40,29 @@ export default function App() {
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
+  /* Pages publiques (présentation, inscription) : elles n'ont pas besoin des scripts du site. */
+  const publique = estPublique(hash);
   useEffect(() => {
+    if (publique || ready) return;
     let active = true;
     loadOriginalFeatures().then(() => { if (active) setReady(true); })
       .catch(e => { if (active) setError(e.message); });
     return () => { active = false; };
-  }, []);
+  }, [publique, ready]);
   const page = selectedPage(hash);
   const Page = pages[page];
   // Route is called after React commits the correct view container.
   useEffect(() => {
-    if (ready && window.BiblIA) window.BiblIA.navigate();
-  }, [hash, ready, page]);
+    if (!publique && ready && window.BiblIA) window.BiblIA.navigate();
+  }, [hash, ready, page, publique]);
+  if (publique) {
+    const route = lireHash(hash).route;
+    return <>
+      <IconSprites />
+      <a className="skip" href="#main" onClick={(e) => { e.preventDefault(); document.getElementById('main')?.focus(); }}>Aller au contenu</a>
+      {route === 'decouverte' || route.startsWith('decouverte-') ? <Decouverte hash={hash} /> : <Inscription hash={hash} />}
+    </>;
+  }
   return <>
     <IconSprites />
     <div style={{ display: "contents" }} dangerouslySetInnerHTML={{ __html: "<a class=\"skip\" data-act=\"skip\" href=\"#main\">Aller au contenu</a>" }} />
