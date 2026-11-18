@@ -17,6 +17,7 @@ function renderView(keep) {
 }
 let booted = false, curNav = null, homeY = 0;
 function route() {
+  if (!document.getElementById('view')) return; /* page publique (présentation, inscription) : rien à afficher ici */
   if (curNav === 'accueil') homeY = window.scrollY;
   /* Retour sur l'accueil : on ne retrouve sa demande que si l'on était parti depuis la recommandation,
      il y a moins de 15 minutes. Sinon l'accueil repart d'une zone de saisie vide. */

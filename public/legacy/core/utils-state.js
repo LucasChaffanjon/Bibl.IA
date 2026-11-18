@@ -17,8 +17,8 @@ const DONE_MARK = '<span class="done-mark" aria-hidden="true"><svg viewBox="0 0 
 /* ——— État de démonstration (reste dans ce navigateur) ——— */
 const KEY = 'biblia-demo-v2';
 const DEFAULTS = () => ({
-  profile:{job:'', jobOther:'', tasks:[], audience:[], tone:'', format:'', langs:[], langsOther:'', level:'', tools:[], toolsOther:'', notes:'', done:false},
-  company:{name:'', sector:'', sectorOther:'', size:'', activity:'', clients:[], area:'', values:[], voice:'', rules:'', notes:'', done:false},
+  profile:{situation:'', situationOther:'', job:'', jobOther:'', studyLevel:'', studyLevelOther:'', tasks:[], tasksOther:'', audience:[], audienceOther:'', tone:'', toneOther:'', format:'', formatOther:'', langs:[], langsOther:'', level:'', tools:[], toolsOther:'', notes:'', done:false},
+  company:{name:'', sector:'', sectorOther:'', size:'', activity:'', clients:[], clientsOther:'', area:'', areaOther:'', values:[], valuesOther:'', voice:'', voiceOther:'', rules:'', notes:'', done:false},
   allowed:['chatgpt','lechat','claude','copilot','perplexity','deepl','canva','gamma'],
   hidden:[], dock:['chatgpt','lechat','claude','copilot','perplexity','deepl'], done:['tc1'], rev:{tc1:{n:0,due:0}}, ratings:{}, suggestions:[], invites:0, welcomeOff:false,
   blocks:[{id:'next',on:true},{id:'updates',on:true},{id:'ais',on:true},{id:'how',on:true},{id:'rules',on:true}]
@@ -26,6 +26,8 @@ const DEFAULTS = () => ({
 let S = DEFAULTS();
 try { const raw = localStorage.getItem(KEY); if (raw) S = Object.assign(DEFAULTS(), JSON.parse(raw)); S.profile = Object.assign(DEFAULTS().profile, S.profile); S.company = Object.assign(DEFAULTS().company, S.company); } catch (e) {}
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
+/* Les écrans d'inscription (React) transmettent la situation choisie (étudiant, freelance…) au profil. */
+window.BiblIADemo = ({profile, company} = {}) => { if (profile) Object.assign(S.profile, profile); if (company) Object.assign(S.company, company); save(); };
 const isAllowed = id => S.allowed.includes(id);
 const isHidden = id => S.hidden.includes(id);
 const visibleAIs = () => AIS.filter(a => isAllowed(a.id) && !isHidden(a.id));
@@ -205,7 +207,8 @@ document.addEventListener('click', e => {
 
 /* ——— Navigation : indicateur glissant ——— */
 function placeLine() {
-  const nav = $('#nav'), cur = $('a[aria-current="page"]', nav), line = $('.nav-line', nav);
+  const nav = $('#nav'); if (!nav) return; /* page publique */
+  const cur = $('a[aria-current="page"]', nav), line = $('.nav-line', nav);
   if (!cur) { line.style.width = '0'; return; }
   line.style.width = cur.offsetWidth - 24 + 'px'; line.style.transform = `translateX(${cur.offsetLeft + 12}px)`;
 }
@@ -225,7 +228,9 @@ function onScroll() {
   requestAnimationFrame(() => {
     ticking = false;
     const y = window.scrollY, vh = window.innerHeight, max = document.documentElement.scrollHeight - vh;
-    $('#top').classList.toggle('is-stuck', y > 4);
+    const top = $('#top');
+    if (!top) return; /* page publique : ni barre du site ni effets */
+    top.classList.toggle('is-stuck', y > 4);
     scrollers.forEach(f => f(y, vh));
   });
 }

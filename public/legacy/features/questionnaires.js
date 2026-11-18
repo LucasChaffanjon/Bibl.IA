@@ -25,6 +25,7 @@ function bindQ(scope, q, data) {
       if (q.exclusive) v = id === q.exclusive ? v.filter(x => x === q.exclusive) : v.filter(x => x !== q.exclusive);
       data[q.id] = v;
     } else data[q.id] = data[q.id] === id ? '' : id;
+    if (q.adapt) adaptProfile(data);
     const cur = data[q.id];
     $$(`[${attr}]`, scope).forEach(x => x.setAttribute('aria-pressed', multi ? cur.includes(x.getAttribute(attr)) : cur === x.getAttribute(attr)));
     if (oth) {
@@ -32,12 +33,18 @@ function bindQ(scope, q, data) {
       if (show && oth.hidden) { oth.hidden = false; oth.classList.remove('appear'); void oth.offsetWidth; oth.classList.add('appear'); if (id === q.other) oth.focus(); }
       else if (!show) oth.hidden = true;
     }
+    /* La situation a changé : les questions suivantes changent aussi */
+    if (q.adapt) scope.dispatchEvent(new CustomEvent('q-adapt', {bubbles:true}));
   }));
 }
 /* Fenêtre « une question à la fois » */
-function openQuiz({label, questions, data, onDone, done}) {
-  let step = 0; const N = questions.length;
+/* questions : une liste, ou une fonction qui la calcule à partir des réponses (le profil s'adapte à la situation) */
+function openQuiz({label, questions: qsrc, data, onDone, done}) {
+  let step = 0, questions = [], N = 0;
+  const refresh = () => { questions = typeof qsrc === 'function' ? qsrc(data) : qsrc; N = questions.length; };
+  refresh();
   const render = () => {
+    refresh();
     if (step >= N) return `<div class="modal-top"><span class="small muted">${esc(label)}</span><button class="rp-close" data-close aria-label="Fermer">${ic('x')}</button></div>
       <div class="modal-in"><div class="onb-pane">${DONE_MARK}<h2 class="h3">${esc(done.title)}</h2><p class="lead">${esc(done.text)}</p>
         <div class="ctx"><p class="label">Ajouté au début des textes à copier</p><pre>${esc(done.preview())}</pre></div></div>
@@ -66,7 +73,7 @@ function openQuiz({label, questions, data, onDone, done}) {
   bind();
 }
 function openOnboarding() {
-  openQuiz({label:'Mon profil', questions:EMP_Q, data:JSON.parse(JSON.stringify(S.profile)),
+  openQuiz({label:'Mon profil', questions:empQuestions, data:JSON.parse(JSON.stringify(S.profile)),
     onDone:d => { S.profile = Object.assign(d, {done:true}); save(); },
     done:{title:'C’est prêt.', text:'Vos réponses sont ajoutées au début de chaque texte à copier, avec la présentation de votre entreprise.', btn:'Faire ma première demande',
       preview:() => promptPreview(),

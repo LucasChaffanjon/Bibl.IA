@@ -24,32 +24,52 @@ const markPrompt = s => { let k = 0; return esc(s).replace(/\[([^\]]+)\]/g, (_, 
 
 /* ——— Contexte placé en tête des prompts : entreprise (dirigeant) + profil (salarié) ——— */
 const low = s => String(s).charAt(0).toLowerCase() + String(s).slice(1);
-/* « Autre » : on reprend ce que la personne a précisé */
-const jobName = p => p.job === 'Autre métier' ? (p.jobOther || '').trim() : p.job;
-const sectorName = c => c.sector === 'Autre secteur' ? (c.sectorOther || '').trim() : c.sector;
+/* « Autre » : on reprend ce que la personne a précisé (withOther, listWithOther : voir catalogue.js) */
+const jobName = p => { const q = personaOf(p).job; return q && q.other ? withOther(p.job, q.other, p.jobOther) : (p.job || '').trim(); };
+const sectorName = c => withOther(c.sector, 'Autre secteur', c.sectorOther);
 const langNames = p => p.langs.map(x => x === 'Autre langue' ? (p.langsOther || '').trim() : x).filter(Boolean);
 const listFr = a => a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + ' et ' + a[a.length - 1];
 const dot = s => { s = String(s).trim(); return /[.!?…]$/.test(s) ? s : s + '.'; };
+/* Qui est la personne : la phrase dépend de sa situation (salarié, étudiant, freelance…) */
+function whoLine(p) {
+  const job = jobName(p), j = job ? low(job) : '';
+  const lvl = withOther(p.studyLevel, 'Autre niveau', p.studyLevelOther);
+  switch (p.situation || 'salarie') {
+    case 'salarie': return j ? `Mon métier : ${j}.` : '';
+    case 'etudiant': return `Je suis étudiant·e${j ? ` en ${j}` : ''}${lvl ? ` (${low(lvl)})` : ''}.`;
+    case 'independant': return `Je travaille à mon compte${j ? ` : ${j}` : ''}.`;
+    case 'freelance': return `Je suis freelance${j ? ` : ${j}` : ''}.`;
+    case 'dirigeant': return `Je dirige une entreprise${j ? `, secteur ${j}` : ''}.`;
+    case 'recherche': return `Je cherche un emploi${j && job !== 'Je ne sais pas encore' ? ` : ${j}` : ''}.`;
+    case 'perso': return 'J’utilise l’IA pour ma vie personnelle.';
+    default: { const sl = situationLabel(p); return sl || j ? `Ma situation : ${[sl, job].filter(Boolean).map(low).join(', ')}.` : ''; }
+  }
+}
 function ctxLines(part) {
   const c = S.company, p = S.profile, L = [];
   if (part !== 'employee') {
     if (c.name || sectorName(c) || c.activity) {
       const size = c.size ? (c.size === '250 et plus' ? ', 250 salariés et plus' : `, ${c.size} salariés`) : '';
+      const clients = listWithOther(c.clients, 'Autres clients', c.clientsOther);
+      const values = listWithOther(c.values, 'Autre atout', c.valuesOther);
+      const area = withOther(c.area, 'Autre zone', c.areaOther), voice = withOther(c.voice, 'Autre façon', c.voiceOther);
       L.push(`Mon entreprise : ${c.name || 'une PME'}${sectorName(c) ? `, secteur ${low(sectorName(c))}` : ''}${size}.${c.activity ? ' ' + dot(c.activity) : ''}`);
-      if (c.clients.length) L.push(`Nos clients : ${listFr(c.clients.map(low))}.`);
-      if (c.area) L.push(`Nous travaillons ${low(c.area)}.`);
-      if (c.values.length) L.push(`Ce qui nous distingue : ${listFr(c.values.map(low))}.`);
-      if (c.voice) L.push(`Avec nos clients : ${low(c.voice)}.`);
+      if (clients.length) L.push(`Nos clients : ${listFr(clients.map(low))}.`);
+      if (area) L.push(`Nous travaillons ${low(area)}.`);
+      if (values.length) L.push(`Ce qui nous distingue : ${listFr(values.map(low))}.`);
+      if (voice) L.push(`Avec nos clients : ${low(voice)}.`);
       if (c.rules) L.push(`Règles à respecter : ${dot(c.rules)}`);
       if (c.notes) L.push(`À savoir sur l’entreprise : ${dot(c.notes)}`);
-    } else if (part !== 'company') L.push('Je travaille dans une PME.');
+    } else if (part !== 'company' && (p.situation || 'salarie') === 'salarie') L.push('Je travaille dans une PME.');
   }
   if (part !== 'company') {
-    if (jobName(p)) L.push(`Mon métier : ${low(jobName(p))}.`);
-    if (p.audience.length) L.push(`Je m’adresse surtout à : ${listFr(p.audience.map(low))}.`);
+    const who = whoLine(p), aud = listWithOther(p.audience, AUD_OTHER, p.audienceOther);
+    if (who) L.push(who);
+    if (aud.length) L.push(`Je m’adresse surtout à : ${listFr(aud.map(low))}.`);
+    if (p.tasks.includes('other') && (p.tasksOther || '').trim()) L.push(`J’utilise aussi l’IA pour : ${dot(p.tasksOther.trim())}`);
     if (langNames(p).some(x => x !== 'Français')) L.push(`Langues de travail : ${listFr(langNames(p).map(low))}.`);
     if (p.tools.includes('other-ai') && (p.toolsOther || '').trim()) L.push(`J’utilise aussi : ${dot(p.toolsOther.trim())}`);
-    if (p.notes) L.push(`À savoir sur mon travail : ${dot(p.notes)}`);
+    if (p.notes) L.push(`À savoir sur moi : ${dot(p.notes)}`);
   }
   return L;
 }
@@ -57,7 +77,7 @@ const contextBlock = () => 'Contexte :\n' + ctxLines().map(x => '- ' + x).join('
 const promptPreview = part => ctxLines(part).map(x => '- ' + x).join('\n') || 'Rien pour l’instant.';
 function prefsBlock() {
   const p = S.profile, L = [];
-  if (p.format) L.push('réponses ' + low(p.format));
+  if (formatName(p)) L.push('réponses ' + low(formatName(p)));
   if (p.level === 'Je débute') L.push('expliquez simplement les termes techniques');
   return L.length ? `\n\nMes préférences : ${L.join(' ; ')}.` : '';
 }

@@ -1,10 +1,11 @@
-/* ——— Profil salarié ——— */
+/* ——— Profil ——— */
+const profQuestions = d => empQuestions(d).map(q => `<section class="form-sec"><div class="stack"><h2 class="h4" id="qt-${q.id}">${esc(q.title)}</h2>${q.help ? `<p class="small muted" id="qh-${q.id}">${esc(q.help)}</p>` : ''}</div><div>${qField(q, d[q.id], d[q.id + 'Other'])}</div></section>`).join('');
 function viewProfile() {
   const v = $('#view'), d = JSON.parse(JSON.stringify(S.profile));
   const hid = S.hidden.filter(isAllowed).map(id => AI[id]);
   v.innerHTML = `<div class="wrap"><header class="phead"><h1 class="h1 split">Des demandes à votre mesure</h1>
     <p class="lead">Vos réponses sont ajoutées au début de chaque texte à copier, pour que l’IA vous réponde comme un collègue qui connaît votre travail. Votre responsable ne les voit pas.</p></header>
-    ${EMP_Q.map(q => `<section class="form-sec reveal"><div class="stack"><h2 class="h4" id="qt-${q.id}">${esc(q.title)}</h2>${q.help ? `<p class="small muted" id="qh-${q.id}">${esc(q.help)}</p>` : ''}</div><div>${qField(q, d[q.id], d[q.id + 'Other'])}</div></section>`).join('')}
+    <div id="profQ">${profQuestions(d)}</div>
     <div class="row" style="padding-block:8px 48px"><button class="btn btn-primary" type="button" id="saveProfile">Enregistrer mon profil</button><button class="btn btn-ghost" type="button" data-act="onboard">Répondre question par question</button></div>
     <section class="form-sec reveal"><div class="stack"><h2 class="h4">Aperçu de votre contexte</h2><p class="small muted">Placé au début de chaque texte à copier, avec la présentation de l’entreprise faite par votre dirigeant.</p></div>
       <div class="ctx"><pre id="ctxPrev">${esc(promptPreview())}</pre></div></section>
@@ -18,8 +19,15 @@ function viewProfile() {
     <section class="form-sec reveal"><div class="stack"><h2 class="h4">Données de démonstration</h2><p class="small muted">Tout est enregistré dans ce navigateur uniquement.</p></div>
       <div class="row"><button class="btn btn-quiet" type="button" id="resetBtn">${ic('refresh', 'i-sm')}Réinitialiser la démonstration</button></div></section></div>`;
   splitWords($('.split', v));
-  EMP_Q.forEach(q => bindQ(v, q, d));
-  $('#saveProfile').addEventListener('click', () => { S.profile = Object.assign(d, {done:true}); save(); $('#ctxPrev').textContent = promptPreview(); toast('Profil enregistré. Vos prompts en tiennent compte.'); });
+  /* Les questions dépendent de la situation : quand elle change, on redessine la liste */
+  const qBox = $('#profQ', v);
+  const bindAll = () => empQuestions(d).forEach(q => bindQ(qBox, q, d));
+  bindAll();
+  qBox.addEventListener('q-adapt', () => {
+    qBox.innerHTML = profQuestions(d); bindAll();
+    const f = $('[data-q-situation][aria-pressed="true"]', qBox) || $('[data-q-situation]', qBox); f && f.focus();
+  });
+  $('#saveProfile').addEventListener('click', () => { S.profile = JSON.parse(JSON.stringify(Object.assign(d, {done:true}))); save(); /* une copie : les clics suivants ne changent rien tant qu'on n'enregistre pas */ $('#ctxPrev').textContent = promptPreview(); toast('Profil enregistré. Vos prompts en tiennent compte.'); });
   $$('[data-unhide]', v).forEach(b => b.addEventListener('click', () => { toggleHidden(b.dataset.unhide); renderView(true); }));
   const rb = $('#resetBtn'); let armed = false;
   rb.addEventListener('click', () => {

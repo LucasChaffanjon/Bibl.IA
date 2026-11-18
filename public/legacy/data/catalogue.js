@@ -256,7 +256,19 @@ AIS.forEach((a) => (a.color = BRAND[a.id]));
 const AI = Object.fromEntries(AIS.map((a) => [a.id, a]));
 const nameOf = (id) => (AI[id] && (AI[id].short || AI[id].name)) || id;
 
-/* Profil : choix proposés à l'inscription */
+/* Profil : le questionnaire s'adapte à la situation de la personne.
+   Une seule liste de questions (empQuestions), dont le contenu change selon la situation choisie
+   en première question (ou à l'inscription). Partout, une option « Autre » permet d'écrire sa propre réponse. */
+const SITUATIONS = [
+  { id: "salarie", label: "Salarié·e" },
+  { id: "etudiant", label: "Étudiant·e ou alternant·e" },
+  { id: "independant", label: "Auto-entrepreneur·e, artisan·e ou commerçant·e" },
+  { id: "freelance", label: "Freelance ou consultant·e" },
+  { id: "dirigeant", label: "Dirigeant·e d’entreprise" },
+  { id: "recherche", label: "En recherche d’emploi ou en reconversion" },
+  { id: "perso", label: "Pour ma vie personnelle" },
+  { id: "autre", label: "Autre situation" },
+];
 const JOBS = [
   "Commercial·e",
   "Assistant·e de direction",
@@ -268,6 +280,8 @@ const JOBS = [
   "Direction",
   "Autre métier",
 ];
+/* Les identifiants des tâches correspondent aux demandes de la page d'accueil (INTENTS) :
+   les tâches cochées y apparaissent en premier. Les libellés changent selon la situation. */
 const TASKS = [
   { id: "mail", label: "Écrire des mails" },
   { id: "slides", label: "Préparer des présentations" },
@@ -278,115 +292,244 @@ const TASKS = [
   { id: "visual", label: "Créer des visuels" },
   { id: "hr", label: "Rédiger des annonces" },
 ];
+const TASK_OTHER = { id: "other", label: "Autre chose" };
 const TOOLS = [
   { id: "ms365", label: "Microsoft 365 (Outlook, Word, Excel)" },
   { id: "google", label: "Google Workspace (Gmail, Docs)" },
   { id: "chatgpt", label: "ChatGPT" },
-  { id: "other-ai", label: "Une autre IA" },
+  { id: "other-ai", label: "Une autre IA ou un autre outil" },
   { id: "none", label: "Aucune IA pour l’instant" },
 ];
+const AUD_OTHER = "Autres personnes";
 
-/* Questionnaire du salarié (inscription et page « Mon profil ») : les réponses alimentent le contexte des prompts */
-const EMP_Q = [
-  {
-    id: "job",
-    type: "single",
-    title: "Quel est votre métier ?",
-    help: "Pour vous proposer des exemples qui vous parlent.",
-    options: JOBS,
-    other: "Autre métier",
-    otherPh: "Précisez votre métier (par exemple : chargé·e d’affaires)",
+/* Ce qui change d'une situation à l'autre */
+const PERSONAS = {
+  salarie: {
+    job: { title: "Quel est votre métier ?", help: "Pour vous proposer des exemples qui vous parlent.", options: JOBS, other: "Autre métier", otherPh: "Précisez votre métier (par exemple : chargé·e d’affaires)" },
+    tasks: TASKS,
+    audience: ["Clients particuliers", "Clients professionnels", "Fournisseurs", "Collègues", "Direction", "Administrations et partenaires"],
+    notesPh: "Par exemple : je suis le contact des clients hôteliers, je rappelle toujours notre délai de livraison de 5 jours, j’évite le jargon technique.",
   },
-  {
-    id: "tasks",
-    type: "multi",
-    title: "Quelles sont vos tâches principales ?",
-    help: "Elles apparaissent en premier dans les exemples de l’accueil.",
-    options: TASKS,
-  },
-  {
-    id: "audience",
-    type: "multi",
-    title: "À qui vous adressez-vous le plus souvent ?",
-    help: "Pour adapter le ton et le niveau de détail des textes.",
-    options: [
-      "Clients particuliers",
-      "Clients professionnels",
-      "Fournisseurs",
-      "Collègues",
-      "Direction",
-      "Administrations et partenaires",
+  etudiant: {
+    job: { title: "Qu’étudiez-vous ?", help: "Pour des exemples tirés de vos cours.", options: ["Commerce, gestion et économie", "Droit et sciences politiques", "Sciences et ingénierie", "Informatique et numérique", "Santé et social", "Lettres, langues et sciences humaines", "Arts, design et communication", "Autre filière"], other: "Autre filière", otherPh: "Précisez votre filière (par exemple : architecture)" },
+    study: true,
+    tasks: [
+      { id: "summary", label: "Résumer un cours ou un texte" },
+      { id: "slides", label: "Préparer un exposé" },
+      { id: "search", label: "Chercher et vérifier des sources" },
+      { id: "correct", label: "Relire et corriger mes écrits" },
+      { id: "mail", label: "Écrire à un professeur ou une entreprise" },
+      { id: "translate", label: "Traduire" },
+      { id: "ideas", label: "Trouver des idées (mémoire, projet)" },
+      { id: "sheet", label: "Travailler sur des données" },
     ],
+    audience: ["Professeurs", "Camarades", "Administration de l’école", "Entreprises et recruteurs", "Maître de stage ou d’alternance"],
+    notesPh: "Par exemple : je prépare un mémoire sur l’économie circulaire ; je suis en alternance dans une agence immobilière.",
   },
-  {
-    id: "tone",
-    type: "single",
-    title: "Quel ton utilisez-vous dans vos échanges écrits ?",
-    help: "Il sera repris dans les textes de rédaction proposés.",
-    options: [
-      "Très formel",
-      "Professionnel et cordial",
-      "Simple et direct",
-      "Chaleureux et proche",
+  independant: {
+    job: { title: "Quelle est votre activité ?", help: "Pour des exemples adaptés à votre métier.", options: ["Artisanat (bâtiment, réparation…)", "Commerce", "Services à la personne", "Beauté et bien-être", "Restauration et alimentation", "Transport et livraison", "Création (photo, graphisme, couture…)", "Autre activité"], other: "Autre activité", otherPh: "Précisez votre activité (par exemple : paysagiste)" },
+    tasks: [
+      { id: "mail", label: "Écrire à mes clients" },
+      { id: "visual", label: "Créer des visuels et des publications" },
+      { id: "correct", label: "Relire mes textes (devis, site, annonces)" },
+      { id: "sheet", label: "Suivre mes chiffres (devis, factures)" },
+      { id: "search", label: "Me renseigner (règles, démarches)" },
+      { id: "ideas", label: "Trouver des idées pour me faire connaître" },
+      { id: "translate", label: "Traduire" },
     ],
+    audience: ["Clients particuliers", "Clients professionnels", "Prospects", "Fournisseurs", "Administrations (URSSAF, impôts…)", "Banque et comptable"],
+    notesPh: "Par exemple : je suis plombier à Lyon, je travaille surtout pour des particuliers, je tutoie mes clients sur Instagram mais je les vouvoie par mail.",
   },
-  {
-    id: "format",
-    type: "single",
-    title: "Comment préférez-vous recevoir les réponses de l’IA ?",
-    help: "Chaque texte proposé le précisera à l’IA.",
-    options: [
-      "Courtes et à l’essentiel",
-      "Détaillées avec des explications",
-      "En liste à puces",
-      "Avec un exemple concret",
+  freelance: {
+    job: { title: "Quel est votre domaine ?", help: "Pour des exemples adaptés à vos missions.", options: ["Développement et tech", "Design et création", "Rédaction et traduction", "Marketing et communication", "Conseil et stratégie", "Formation et coaching", "Finance et gestion", "Autre domaine"], other: "Autre domaine", otherPh: "Précisez votre domaine (par exemple : ingénierie du son)" },
+    tasks: [
+      { id: "mail", label: "Prospecter et répondre aux clients" },
+      { id: "slides", label: "Préparer des propositions et présentations" },
+      { id: "summary", label: "Faire des comptes rendus de réunion" },
+      { id: "correct", label: "Relire et corriger mes livrables" },
+      { id: "search", label: "Faire de la veille" },
+      { id: "visual", label: "Créer des visuels" },
+      { id: "translate", label: "Traduire" },
+      { id: "ideas", label: "Trouver des idées" },
     ],
+    audience: ["Clients professionnels", "Clients particuliers", "Prospects", "Agences et plateformes", "Autres freelances", "Administrations (URSSAF, impôts…)"],
+    notesPh: "Par exemple : je suis graphiste freelance, je travaille surtout avec des start-up, je facture au forfait.",
   },
-  {
-    id: "langs",
-    type: "multi",
-    title: "Dans quelles langues travaillez-vous ?",
-    help: "Pour les traductions et les échanges avec l’étranger.",
-    options: [
-      "Français",
-      "Anglais",
-      "Allemand",
-      "Espagnol",
-      "Italien",
-      "Autre langue",
+  dirigeant: {
+    job: { title: "Dans quel secteur est votre entreprise ?", help: "Pour des exemples adaptés à votre activité.", options: ["Industrie", "Bâtiment et travaux", "Commerce et distribution", "Services aux entreprises", "Santé et social", "Hôtellerie et restauration", "Transport et logistique", "Numérique", "Agriculture et agroalimentaire", "Autre secteur"], other: "Autre secteur", otherPh: "Précisez votre secteur (par exemple : imprimerie)" },
+    tasks: [
+      { id: "mail", label: "Écrire aux clients et partenaires" },
+      { id: "slides", label: "Préparer des présentations" },
+      { id: "summary", label: "Faire des comptes rendus" },
+      { id: "sheet", label: "Analyser mes chiffres" },
+      { id: "hr", label: "Recruter (annonces, entretiens)" },
+      { id: "meeting", label: "Préparer des réunions" },
+      { id: "search", label: "Faire de la veille" },
+      { id: "ideas", label: "Trouver des idées" },
     ],
-    other: "Autre langue",
-    otherPh: "Laquelle ? (par exemple : néerlandais)",
+    audience: ["Clients", "Salariés", "Associés et investisseurs", "Banque et expert-comptable", "Fournisseurs", "Administrations et partenaires"],
+    notesPh: "Par exemple : nous sommes 6, nous vendons du matériel de bureau aux PME de la région, je veux gagner du temps sur les devis.",
   },
-  {
-    id: "level",
-    type: "single",
-    title: "Où en êtes-vous avec l’IA ?",
-    help: "Pour adapter les explications.",
-    options: [
-      "Je débute",
-      "J’ai déjà essayé quelques fois",
-      "Je l’utilise régulièrement",
+  recherche: {
+    job: { title: "Quel métier visez-vous ?", help: "Pour adapter vos candidatures et vos recherches.", options: [...JOBS.filter((j) => j !== "Autre métier"), "Je ne sais pas encore", "Autre métier"], other: "Autre métier", otherPh: "Précisez le métier visé (par exemple : infirmier·e)" },
+    tasks: [
+      { id: "correct", label: "Écrire mon CV et mes lettres de motivation" },
+      { id: "mail", label: "Écrire aux recruteurs" },
+      { id: "search", label: "Me renseigner sur les entreprises et les métiers" },
+      { id: "meeting", label: "Préparer un entretien" },
+      { id: "ideas", label: "Trouver des pistes de métiers ou de formations" },
+      { id: "translate", label: "Traduire" },
     ],
+    audience: ["Recruteurs", "Entreprises", "France Travail et organismes de formation", "Mon réseau professionnel"],
+    notesPh: "Par exemple : 10 ans dans la vente, je me reconvertis dans les ressources humaines ; je cherche autour de Nantes.",
   },
-  {
-    id: "tools",
-    type: "multi",
-    title: "Quels outils utilisez-vous déjà ?",
-    help: "Si l’IA intégrée à vos outils est autorisée, elle vous sera proposée en priorité.",
-    options: TOOLS,
-    exclusive: "none",
-    other: "other-ai",
-    otherPh: "Laquelle ? (par exemple : un outil de transcription)",
+  perso: {
+    job: null,
+    tasks: [
+      { id: "mail", label: "Écrire des courriers et des mails (administration, réclamations…)" },
+      { id: "search", label: "Chercher et vérifier des informations" },
+      { id: "summary", label: "Comprendre ou résumer un document" },
+      { id: "correct", label: "Relire mes textes" },
+      { id: "translate", label: "Traduire" },
+      { id: "visual", label: "Créer des invitations ou des visuels" },
+      { id: "ideas", label: "Trouver des idées (cadeaux, sorties, recettes…)" },
+    ],
+    audience: ["Proches", "Administrations", "Professionnels (banque, artisans, médecins…)", "Associations"],
+    notesPh: "Par exemple : je m’occupe d’une association de quartier ; j’ai du mal avec les démarches en ligne.",
   },
-  {
-    id: "notes",
-    type: "textarea",
-    title: "Autre chose d’important à savoir pour vous aider ?",
-    help: "Réponse libre. Il est ajouté au début de chacun de vos textes à copier.",
-    ph: "Par exemple : je suis le contact des clients hôteliers, je rappelle toujours notre délai de livraison de 5 jours, j’évite le jargon technique.",
+  autre: {
+    job: { type: "text", title: "Que faites-vous, en quelques mots ?", help: "Pour des exemples qui vous parlent.", ph: "Par exemple : bénévole dans une association sportive" },
+    tasks: [...TASKS, { id: "correct", label: "Relire et corriger" }, { id: "ideas", label: "Trouver des idées" }],
+    audience: ["Clients", "Collègues", "Proches", "Administrations", "Partenaires"],
+    notesPh: "Par exemple : ce que vous faites, pour qui, et ce que vous attendez de l’IA.",
   },
-];
+};
+const personaOf = (p) => PERSONAS[(p && p.situation) || "salarie"] || PERSONAS.salarie;
+const situationLabel = (p) => {
+  if (p.situation === "autre") return (p.situationOther || "").trim();
+  const s = SITUATIONS.find((x) => x.id === p.situation);
+  return s ? s.label : "";
+};
+
+/* Questionnaire du profil (inscription et page « Mon profil ») : les réponses alimentent le contexte des prompts */
+function empQuestions(p) {
+  const P = personaOf(p);
+  const Q = [
+    {
+      id: "situation",
+      type: "single",
+      adapt: true,
+      title: "Quelle est votre situation ?",
+      help: "Les questions suivantes s’adaptent à votre réponse.",
+      options: SITUATIONS,
+      other: "autre",
+      otherPh: "Précisez (par exemple : bénévole, retraité·e, enseignant·e…)",
+    },
+  ];
+  if (P.job) Q.push({ id: "job", type: P.job.type || "single", ...P.job });
+  if (P.study)
+    Q.push({
+      id: "studyLevel",
+      type: "single",
+      title: "À quel niveau ?",
+      options: ["Lycée", "BTS ou BUT", "Licence", "Master", "Doctorat", "Formation pour adultes", "Autre niveau"],
+      other: "Autre niveau",
+      otherPh: "Précisez votre niveau",
+    });
+  Q.push(
+    {
+      id: "tasks",
+      type: "multi",
+      title: p.situation === "perso" ? "Pour quoi voulez-vous utiliser l’IA ?" : "Quelles sont vos tâches principales ?",
+      help: "Elles apparaissent en premier dans les exemples de l’accueil.",
+      options: [...P.tasks, TASK_OTHER],
+      other: "other",
+      otherPh: "Pour quoi d’autre ? (par exemple : préparer mes entraînements)",
+    },
+    {
+      id: "audience",
+      type: "multi",
+      title: "À qui vous adressez-vous le plus souvent ?",
+      help: "Pour adapter le ton et le niveau de détail des textes.",
+      options: [...P.audience, AUD_OTHER],
+      other: AUD_OTHER,
+      otherPh: "À qui ? Séparez par des virgules (par exemple : investisseurs, mairie)",
+    },
+    {
+      id: "tone",
+      type: "single",
+      title: "Quel ton utilisez-vous dans vos échanges écrits ?",
+      help: "Il sera repris dans les textes de rédaction proposés.",
+      options: ["Très formel", "Professionnel et cordial", "Simple et direct", "Chaleureux et proche", "Autre ton"],
+      other: "Autre ton",
+      otherPh: "Décrivez votre ton (par exemple : tutoiement, avec un peu d’humour)",
+    },
+    {
+      id: "format",
+      type: "single",
+      title: "Comment préférez-vous recevoir les réponses de l’IA ?",
+      help: "Chaque texte proposé le précisera à l’IA.",
+      options: ["Courtes et à l’essentiel", "Détaillées avec des explications", "En liste à puces", "Avec un exemple concret", "Autre format"],
+      other: "Autre format",
+      otherPh: "Comment ? (par exemple : un tableau, puis un résumé en 3 lignes)",
+    },
+    {
+      id: "langs",
+      type: "multi",
+      title: p.situation === "perso" ? "Dans quelles langues écrivez-vous ?" : "Dans quelles langues travaillez-vous ?",
+      help: "Pour les traductions et les échanges avec l’étranger.",
+      options: ["Français", "Anglais", "Allemand", "Espagnol", "Italien", "Autre langue"],
+      other: "Autre langue",
+      otherPh: "Laquelle ? (par exemple : néerlandais)",
+    },
+    {
+      id: "level",
+      type: "single",
+      title: "Où en êtes-vous avec l’IA ?",
+      help: "Pour adapter les explications.",
+      options: ["Je débute", "J’ai déjà essayé quelques fois", "Je l’utilise régulièrement"],
+    },
+    {
+      id: "tools",
+      type: "multi",
+      title: "Quels outils utilisez-vous déjà ?",
+      help: "Si l’IA intégrée à vos outils est autorisée, elle vous sera proposée en priorité.",
+      options: TOOLS,
+      exclusive: "none",
+      other: "other-ai",
+      otherPh: "Lesquels ? (par exemple : Notion, un outil de transcription)",
+    },
+    {
+      id: "notes",
+      type: "textarea",
+      title: "Autre chose d’important à savoir pour vous aider ?",
+      help: "Réponse libre. Elle est ajoutée au début de chacun de vos textes à copier.",
+      ph: P.notesPh,
+    }
+  );
+  return Q;
+}
+
+/* Quand la situation change, on retire les réponses qui n'existent plus dans le nouveau questionnaire. */
+function adaptProfile(d) {
+  const P = personaOf(d);
+  const ok = (q) => (q.options || []).map((o) => (typeof o === "string" ? o : o.id));
+  const qs = empQuestions(d);
+  const get = (id) => qs.find((q) => q.id === id);
+  const job = get("job");
+  if (!job || (job.type !== "text" && !ok(job).includes(d.job))) { d.job = ""; d.jobOther = ""; }
+  if (!P.study) { d.studyLevel = ""; d.studyLevelOther = ""; }
+  d.tasks = (d.tasks || []).filter((t) => ok(get("tasks")).includes(t));
+  d.audience = (d.audience || []).filter((t) => ok(get("audience")).includes(t));
+  return d;
+}
+
+/* Ce que la personne a vraiment répondu, « Autre » remplacé par ce qu'elle a écrit */
+const withOther = (val, other, txt) => (val === other ? (txt || "").trim() : val);
+const listWithOther = (arr, other, txt) =>
+  (arr || []).flatMap((x) => (x === other ? String(txt || "").split(/[,;]/).map((s) => s.trim()).filter(Boolean) : [x]));
+const toneName = (p) => withOther(p.tone, "Autre ton", p.toneOther);
+const formatName = (p) => withOther(p.format, "Autre format", p.formatOther);
 
 /* Présentation de l'entreprise (espace dirigeant) : ajoutée en tête des prompts de tous les salariés */
 const CO_Q = [
@@ -438,7 +581,10 @@ const CO_Q = [
       "Entreprises",
       "Collectivités et secteur public",
       "Clients à l’international",
+      "Autres clients",
     ],
+    other: "Autres clients",
+    otherPh: "Lesquels ? (par exemple : associations, hôpitaux)",
   },
   {
     id: "area",
@@ -449,7 +595,10 @@ const CO_Q = [
       "Dans la région",
       "Dans toute la France",
       "À l’international",
+      "Autre zone",
     ],
+    other: "Autre zone",
+    otherPh: "Précisez (par exemple : en ligne uniquement)",
   },
   {
     id: "values",
@@ -463,7 +612,10 @@ const CO_Q = [
       "Réactivité",
       "Innovation",
       "Engagement environnemental",
+      "Autre atout",
     ],
+    other: "Autre atout",
+    otherPh: "Lequel ? (par exemple : fabrication française)",
   },
   {
     id: "voice",
@@ -473,7 +625,10 @@ const CO_Q = [
       "Vouvoiement, ton formel",
       "Vouvoiement, ton chaleureux",
       "Tutoiement, ton décontracté",
+      "Autre façon",
     ],
+    other: "Autre façon",
+    otherPh: "Décrivez-la (par exemple : vouvoiement, ton très technique)",
   },
   {
     id: "rules",
@@ -495,7 +650,7 @@ const ms = (p) => p.tools.includes("ms365");
 const gg = (p) => p.tools.includes("google");
 /* En-tête de chaque prompt : présentation de l'entreprise + profil du salarié (voir contextBlock) */
 const me = (p) => contextBlock();
-const tn = (p, d) => (p.tone ? p.tone.toLowerCase() : d);
+const tn = (p, d) => (toneName(p) ? toneName(p).toLowerCase() : d);
 
 const INTENTS = [
   {
