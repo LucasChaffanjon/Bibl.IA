@@ -47,7 +47,7 @@ function viewDashboard(v, nl) {
     <section class="fsec" aria-labelledby="fGoing"><div class="fsec-h"><h2 class="h3" id="fGoing">${going.length ? 'Vos parcours en cours' : list.length ? 'Votre prochain parcours' : 'Vos parcours'}</h2><a class="link has-arrow" href="#parcours">Voir tous les parcours ${ARW}</a></div>
       ${list.length ? `<ul class="ledger">${list.map(row).join('')}</ul>` : `<p class="muted">${finished.length === all.length ? 'Vous avez terminé tous vos parcours. Les questions de révision continuent de revenir ici.' : 'Aucun parcours en cours. Choisissez-en un dans la liste des parcours.'}</p>`}
       ${finished.length ? `<p class="small muted row" style="gap:8px">${ic('check', 'i-sm')}${finished.length > 1 ? 'Parcours terminés' : 'Parcours terminé'} : ${finished.map(c => esc(c.id === 'tc' ? 'Tronc commun' : AI[c.id].name)).join(', ')}.</p>` : ''}</section>
-    <p class="note" style="margin-top:32px">Pas de badge ni de classement : seule votre progression compte, et elle n’est visible que par vous.</p></div>`;
+    <p class="note" style="margin-top:32px">Pas de badge ni de classement : seule votre progression compte. Si votre compte dépend d’une entreprise, son administrateur voit votre avancement dans les formations, et rien d’autre.</p></div>`;
 }
 
 /* Tous les parcours : chaque parcours est un volet, fermé par défaut ; à l’intérieur, chaque module (ou chapitre) est aussi un volet.
@@ -112,7 +112,7 @@ function viewCatalog(v, nl) {
     </section>
     ${tcDone || finished.length ? `<section class="fsec" aria-labelledby="doneLabel"><h2 class="h3" id="doneLabel">Parcours terminés</h2>
       ${tcDone ? tcBlock(nid) : ''}${finished.map(a => aiBlock(a, nid)).join('')}</section>` : ''}
-    <p class="note" style="margin-top:32px">Pas de badge ni de classement : seule votre progression compte, et elle n’est visible que par vous.</p></div>`;
+    <p class="note" style="margin-top:32px">Pas de badge ni de classement : seule votre progression compte. Si votre compte dépend d’une entreprise, son administrateur voit votre avancement dans les formations, et rien d’autre.</p></div>`;
   $$('[data-pane]', v).forEach(b => b.addEventListener('click', () => {
     const o = b.getAttribute('aria-expanded') !== 'true', body = b.nextElementSibling;
     b.setAttribute('aria-expanded', o); body.inert = !o; panes[b.dataset.pane] = o;
