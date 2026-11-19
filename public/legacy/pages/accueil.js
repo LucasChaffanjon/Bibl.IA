@@ -85,7 +85,7 @@ const BLOCKS = {
     const vis = visibleAIs(); if (!vis.length) return '';
     const items = vis.map(a => `<a class="mq-item" href="#ia-${a.id}">${tile(a.id)}<span class="stack" style="gap:0"><span>${esc(a.name)}</span><span class="tiny muted">${esc(CATS.find(c => c.id === a.cat).name)}</span></span></a>`).join('');
     return `<section class="section" aria-label="Mes IA autorisées"><div class="wrap">
-      <div class="sec-head reveal"><h2 class="h2">${vis.length} IA autorisées par votre entreprise</h2><p class="lead">Vos préférées sont aussi dans « Mes IA », à gauche de l’écran : un clic suffit pour les ouvrir.</p></div>
+      <div class="sec-head reveal"><h2 class="h2">${vis.length} IA ${allowedPhrase()}</h2><p class="lead">Vos préférées sont aussi dans « Mes IA », à gauche de l’écran : un clic suffit pour les ouvrir.</p></div>
       <div class="ai-row reveal">${items}</div></div></section>`;
   },
   how() {

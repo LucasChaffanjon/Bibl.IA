@@ -61,7 +61,7 @@ function actBody(a, i) {
 /* Boutons « Copier et ouvrir » vers les IA autorisées par l’entreprise */
 function tryLinks(kind, src) {
   const ids = TRY_TOOLS[kind].filter(id => AI[id] && isAllowed(id) && !isHidden(id)).slice(0, 3);
-  if (!ids.length) return `<p class="small muted">Aucune IA de ce type n’est autorisée pour l’instant dans votre entreprise. Vous pouvez quand même lire l’exemple de réponse.</p>`;
+  if (!ids.length) return `<p class="small muted">${isPerso() ? 'Aucune IA de ce type dans votre bibliothèque pour l’instant.' : 'Aucune IA de ce type n’est autorisée pour l’instant dans votre entreprise.'} Vous pouvez quand même lire l’exemple de réponse.</p>`;
   return `<div class="try-links">${ids.map(id => `<a class="btn btn-ghost try-go" href="${AI[id].url}" target="_blank" rel="noopener" data-src="${src}">${tile(id, 'tile-xs')}Copier et ouvrir ${esc(AI[id].name)}${ic('ext', 'i-sm')}</a>`).join('')}</div>`;
 }
 

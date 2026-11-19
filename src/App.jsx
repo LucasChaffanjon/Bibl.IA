@@ -15,7 +15,12 @@ import Dirigeant from './pages/Dirigeant';
 import { loadOriginalFeatures } from './legacy/load';
 import Decouverte from './public/Decouverte';
 import Inscription from './public/Inscription';
-import { estPublique, lireHash } from './public/commun';
+import Connexion from './public/Connexion';
+import { lireHash } from './public/commun';
+import { lireAdresse, convertirAncienneAdresse, installerLiens } from './public/routes';
+
+convertirAncienneAdresse();
+installerLiens();
 
 function selectedPage(hash) {
   const route = decodeURIComponent((hash || '').replace(/^#/, ''));
@@ -32,16 +37,20 @@ const pages = {
 };
 
 export default function App() {
-  const [hash, setHash] = useState(window.location.hash);
+  const [adresse, setAdresse] = useState(() => lireAdresse());
   const [ready, setReady] = useState(false);
   const [error, setError] = useState('');
   useEffect(() => {
-    const onHash = () => setHash(window.location.hash);
-    window.addEventListener('hashchange', onHash);
-    return () => window.removeEventListener('hashchange', onHash);
+    const maj = () => setAdresse(lireAdresse());
+    window.addEventListener('hashchange', maj);
+    window.addEventListener('popstate', maj);
+    window.addEventListener('biblia-nav', maj);
+    return () => { window.removeEventListener('hashchange', maj); window.removeEventListener('popstate', maj); window.removeEventListener('biblia-nav', maj); };
   }, []);
-  /* Pages publiques (présentation, inscription) : elles n'ont pas besoin des scripts du site. */
-  const publique = estPublique(hash);
+  /* Pages publiques (présentation, connexion, inscription) : elles n'ont pas besoin des scripts du site.
+     Le site connecté vit sous /dashboard ; ses rubriques restent des ancres (#formations…). */
+  const publique = adresse.zone === 'public';
+  const hash = adresse.ancre || '';
   useEffect(() => {
     if (publique || ready) return;
     let active = true;
@@ -60,7 +69,8 @@ export default function App() {
     return <>
       <IconSprites />
       <a className="skip" href="#main" onClick={(e) => { e.preventDefault(); document.getElementById('main')?.focus(); }}>Aller au contenu</a>
-      {route === 'decouverte' || route.startsWith('decouverte-') ? <Decouverte hash={hash} /> : <Inscription hash={hash} />}
+      {route === 'login' ? <Connexion />
+        : route === 'decouverte' || route.startsWith('decouverte-') ? <Decouverte hash={hash} /> : <Inscription hash={hash} />}
     </>;
   }
   return <>
