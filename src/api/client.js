@@ -115,6 +115,21 @@ export async function creerCompte({ email, motDePasse }) {
   throw new ErreurApi(501, 'connexion_non_branchee', 'La création de compte n’est pas encore branchée.');
 }
 
+/* Connexion (mail + mot de passe), chez le service de connexion, comme creerCompte.
+   En démo : n'importe quel mail et un mot de passe de 8 caractères suffisent ; « type » choisit le compte simulé. */
+export async function seConnecter({ email, motDePasse, type = 'salarie' }) {
+  if (FAUSSES_DONNEES) {
+    await attendre(400);
+    if (!motDePasse || motDePasse.length < 8) throw new ErreurApi(401, 'identifiants_invalides', 'Mail ou mot de passe incorrect.');
+    const prenom = (email.split('@')[0] || 'Vous').replace(/[._-].*/, '').replace(/^./, (c) => c.toUpperCase());
+    if (type === 'particulier') return fauxMoi({ prenom, email, type: 'particulier', offre: 'solo' });
+    if (type === 'dirigeant') return fauxMoi({ prenom, email, type: 'membre', role: 'administrateur', entreprise: { id: 'org_51ab', nom: 'Exemple SARL' }, offre: 'entreprise' });
+    return fauxMoi({ prenom, email, type: 'membre', role: 'salarie', entreprise: { id: 'org_51ab', nom: 'Exemple SARL' }, offre: 'entreprise' });
+  }
+  void motDePasse;
+  throw new ErreurApi(501, 'connexion_non_branchee', 'La connexion n’est pas encore branchée.');
+}
+
 /* POST /api/inscription/particulier (contrat § 3.1) */
 export function inscrireParticulier({ offre, periode, situation, prenom, email }) {
   if (FAUSSES_DONNEES) return faux(() => ({

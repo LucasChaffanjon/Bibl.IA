@@ -1,9 +1,10 @@
 /* Écrans d'inscription (publics) :
-   #inscription                       choisir : pour moi, ou pour mon entreprise
-   #inscription-particulier?offre=…   Découverte ou Plus                (contrat § 3.1)
-   #inscription-entreprise?periode=…  l'administrateur crée l'entreprise (contrat § 3.2), puis invite (§ 9.3)
-   #invitation-<code>                 un salarié accepte l'invitation    (contrat § 3.3)
-   #contact                           « Nous contacter »                 (contrat § 2)
+   /inscription                       choisir : pour moi, ou pour mon entreprise
+   /inscription/particulier?offre=…   Découverte ou Plus                (contrat § 3.1)
+   /inscription/entreprise?periode=…  l'administrateur crée l'entreprise (contrat § 3.2), puis invite (§ 9.3)
+   /invitation/<code>                 un salarié accepte l'invitation    (contrat § 3.3)
+   /contact                           « Nous contacter »                 (contrat § 2)
+   Ces écrans reçoivent une ancre équivalente (#inscription-particulier?offre=…) : voir routes.js.
    Rien ici ne parle directement au back : tout passe par src/api/client.js. */
 import React, { useEffect, useState } from 'react';
 import {
@@ -28,7 +29,7 @@ const SITUATIONS = [
 ];
 
 /* Mise en page commune : le formulaire, et à côté (sur grand écran) le récapitulatif de l'offre. */
-function Cadre({ children, aside, etroit }) {
+export function Cadre({ children, aside, etroit }) {
   return (
     <div className="pub pub-form">
       <BarrePublique sansInscription />
@@ -43,7 +44,7 @@ function Cadre({ children, aside, etroit }) {
   );
 }
 
-function Retour({ href = '#inscription', children = 'Retour' }) {
+export function Retour({ href = '/inscription', children = 'Retour' }) {
   return <a className="reg-back" href={href}><Icone id="chev" petit className="flip" />{children}</a>;
 }
 
@@ -90,12 +91,12 @@ export function Choix() {
       <h1 className="reg-h" tabIndex={-1} ref={ref}>Créer votre compte</h1>
       <p className="reg-lead">Pour qui utiliserez-vous Bibl.IA&nbsp;?</p>
       <div className="pchoice">
-        <a className="pchoice-c has-arrow" href="#inscription-particulier">
+        <a className="pchoice-c has-arrow" href="/inscription/particulier">
           <span className="pchoice-ic"><Icone id="user" /></span>
           <span className="pchoice-t"><b>Pour moi</b><span>Gratuit pour découvrir, ou Plus pour tout débloquer.</span></span>
           <Fleche />
         </a>
-        <a className="pchoice-c has-arrow" href="#inscription-entreprise">
+        <a className="pchoice-c has-arrow" href="/inscription/entreprise">
           <span className="pchoice-ic"><Icone id="users" /></span>
           <span className="pchoice-t"><b>Pour mon entreprise</b><span>Vous créez l’espace de l’équipe et invitez vos salariés. 14 jours d’essai, sans carte bancaire.</span></span>
           <Fleche />
@@ -105,7 +106,7 @@ export function Choix() {
       {FAUSSES_DONNEES && (
         <div className="demo">
           <p><b>Mode démo</b> (visible seulement tant que le back n’est pas branché)&nbsp;: tester l’invitation d’un salarié</p>
-          <p><a className="ulink" href="#invitation-demo">valable</a> · <a className="ulink" href="#invitation-expiree">expirée</a> · <a className="ulink" href="#invitation-utilisee">déjà utilisée</a> · <a className="ulink" href="#invitation-x7">lien inconnu</a>. Un mail qui commence par « deja@ » est considéré comme déjà inscrit.</p>
+          <p><a className="ulink" href="/invitation/demo">valable</a> · <a className="ulink" href="/invitation/expiree">expirée</a> · <a className="ulink" href="/invitation/utilisee">déjà utilisée</a> · <a className="ulink" href="/invitation/x7">lien inconnu</a>. Un mail qui commence par « deja@ » est considéré comme déjà inscrit.</p>
         </div>
       )}
     </Cadre>
@@ -162,7 +163,7 @@ export function Particulier({ params }) {
       /* Offre payante : le back renvoie un lien de paiement. Pour de vrai, on y part : window.location.href = r.paiement_url.
          En démo, on affiche directement l'écran final. */
       if (r.paiement_url && !FAUSSES_DONNEES) { window.location.href = r.paiement_url; return; }
-      transmettreDemo({ profile: { situation: v.situation, situationOther: v.situation === 'autre' ? v.situationAutre.trim() : '' } });
+      transmettreDemo({ account: { type: 'particulier', role: null }, profile: { situation: v.situation, situationOther: v.situation === 'autre' ? v.situationAutre.trim() : '' } });
       setFini(r.moi);
     } catch (x) {
       if (x.code === 'email_deja_utilise') { setErr({ email: x.message }); focusPremiereErreur(e.target); } else setGeneral(x.message);
@@ -173,7 +174,7 @@ export function Particulier({ params }) {
     return (
       <Cadre etroit>
         <Bravo titre={`Votre compte est prêt, ${fini.prenom}`}
-          actions={<a className="btn btn-primary has-arrow" href="#accueil">Commencer <Fleche /></a>}>
+          actions={<a className="btn btn-primary has-arrow" href="/dashboard">Commencer <Fleche /></a>}>
           {offre === 'solo'
             ? <p>{FAUSSES_DONNEES ? 'En démo, le paiement est simulé. ' : ''}Votre abonnement {offres ? offres.solo.nom : 'Plus'} est actif. Commencez par dire ce que vous devez faire aujourd’hui.</p>
             : <p>Vous avez une demande par jour et le premier chapitre de chaque parcours par IA. Commencez par l’essentiel&nbsp;: comprendre l’IA et bien lui demander.</p>}
@@ -316,7 +317,7 @@ export function Entreprise({ params }) {
     try {
       await creerCompte({ email: v.email.trim(), motDePasse: v.mdp });
       const r = await inscrireEntreprise({ entreprise_nom: v.nom.trim(), taille: v.taille, periode, nombre_salaries: Number(v.nombre), prenom: v.prenom.trim(), email: v.email.trim() });
-      transmettreDemo({ profile: { situation: 'dirigeant' }, company: { name: v.nom.trim() } });
+      transmettreDemo({ account: { type: 'membre', role: 'administrateur', entreprise: v.nom.trim() }, profile: { situation: 'dirigeant' }, company: { name: v.nom.trim() } });
       setMoi(r.moi);
       aller(3);
     } catch (x) {
@@ -356,7 +357,7 @@ export function Entreprise({ params }) {
               {v.taille === '50+' ? (
                 <div className="pub-info">
                   <p><b>Pour 50 salariés et plus, nous préparons une offre sur mesure</b>&nbsp;: connexion avec le compte Microsoft ou Google de l’entreprise, et accompagnement.</p>
-                  <a className="btn btn-primary" href="#contact?taille=50%2B">Nous contacter</a>
+                  <a className="btn btn-primary" href="/contact?taille=50%2B">Nous contacter</a>
                 </div>
               ) : (
                 <>
@@ -430,7 +431,7 @@ function Inviter({ moi, titreRef }) {
   if (res) {
     return (
       <Bravo titre={`${res.envoyees.length} invitation${res.envoyees.length > 1 ? 's' : ''} envoyée${res.envoyees.length > 1 ? 's' : ''}`}
-        actions={<a className="btn btn-primary has-arrow" href="#dirigeant">Ouvrir l’espace dirigeant <Fleche /></a>}>
+        actions={<a className="btn btn-primary has-arrow" href="/dashboard#dirigeant">Ouvrir l’espace dirigeant <Fleche /></a>}>
         <p>Vos salariés reçoivent un mail avec un lien pour créer leur compte. Vous suivrez leurs inscriptions dans l’espace dirigeant.</p>
         {res.refusees.length > 0 && <p className="pub-alert">Non envoyées&nbsp;: {res.refusees.map((r) => r.email).join(', ')}</p>}
       </Bravo>
@@ -450,7 +451,7 @@ function Inviter({ moi, titreRef }) {
         </Champ>
         <div className="reg-row">
           <BoutonEnvoi enCours={envoi} attente="Envoi…">{mails.length > 1 ? `Inviter ${mails.length} salariés` : 'Inviter'}</BoutonEnvoi>
-          <a className="btn btn-quiet" href="#dirigeant">Plus tard</a>
+          <a className="btn btn-quiet" href="/dashboard#dirigeant">Plus tard</a>
         </div>
         <p className="reg-fine"><Icone id="eye" petit />Vos salariés sont informés que vous voyez leur avancement dans les formations, et rien d’autre.</p>
       </form>
@@ -487,7 +488,7 @@ export function Invitation({ code }) {
     try {
       await creerCompte({ email: inv.data.email, motDePasse: v.mdp });
       const m = await accepterInvitation(code, { prenom: v.prenom.trim(), email: inv.data.email });
-      transmettreDemo({ profile: { situation: 'salarie' } });
+      transmettreDemo({ account: { type: 'membre', role: 'salarie' }, profile: { situation: 'salarie' } });
       setMoi(m);
     } catch (x) { setGeneral(x.message); } finally { setEnvoi(false); }
   };
@@ -504,7 +505,7 @@ export function Invitation({ code }) {
         <h1 className="reg-h" tabIndex={-1} ref={ref}>{x.code === 'invitation_expiree' ? 'Cette invitation a expiré' : x.code === 'invitation_deja_utilisee' ? 'Invitation déjà utilisée' : 'Lien d’invitation introuvable'}</h1>
         <p className="reg-lead">{x.message}</p>
         <div className="done-act">
-          {x.code === 'invitation_deja_utilisee' ? <a className="btn btn-primary" href="#accueil">Se connecter</a> : <a className="btn btn-ghost" href="#decouverte">Découvrir Bibl.IA</a>}
+          {x.code === 'invitation_deja_utilisee' ? <a className="btn btn-primary" href="/login">Se connecter</a> : <a className="btn btn-ghost" href="/">Découvrir Bibl.IA</a>}
         </div>
       </Cadre>
     );
@@ -514,7 +515,7 @@ export function Invitation({ code }) {
     return (
       <Cadre etroit>
         <Bravo titre={`Bienvenue chez ${moi.entreprise.nom}, ${moi.prenom}`}
-          actions={<a className="btn btn-primary has-arrow" href="#accueil">Commencer <Fleche /></a>}>
+          actions={<a className="btn btn-primary has-arrow" href="/dashboard">Commencer <Fleche /></a>}>
           <p>Votre compte est prêt. Vous y trouverez les IA autorisées par votre entreprise, et vos formations, de l’essentiel jusqu’au niveau avancé.</p>
         </Bravo>
       </Cadre>
@@ -582,7 +583,7 @@ export function Contact({ params }) {
   if (ok) {
     return (
       <Cadre etroit>
-        <Bravo titre="Message envoyé" actions={<a className="btn btn-ghost" href="#decouverte">Retour à la présentation</a>}>
+        <Bravo titre="Message envoyé" actions={<a className="btn btn-ghost" href="/">Retour à la présentation</a>}>
           <p>Merci. Nous vous répondons par mail sous deux jours ouvrés.</p>
         </Bravo>
       </Cadre>
@@ -591,7 +592,7 @@ export function Contact({ params }) {
 
   return (
     <Cadre etroit>
-      <Retour href="#decouverte">Présentation</Retour>
+      <Retour href="/">Présentation</Retour>
       <h1 className="reg-h" tabIndex={-1} ref={ref}>Nous contacter</h1>
       <p className="reg-lead">Une entreprise de 50 salariés ou plus, une question avant de commencer&nbsp;? Écrivez-nous.</p>
       <form className="reg-form" onSubmit={envoyer} noValidate>

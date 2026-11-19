@@ -75,7 +75,7 @@ function openQuiz({label, questions: qsrc, data, onDone, done}) {
 function openOnboarding() {
   openQuiz({label:'Mon profil', questions:empQuestions, data:JSON.parse(JSON.stringify(S.profile)),
     onDone:d => { S.profile = Object.assign(d, {done:true}); save(); },
-    done:{title:'C’est prêt.', text:'Vos réponses sont ajoutées au début de chaque texte à copier, avec la présentation de votre entreprise.', btn:'Faire ma première demande',
+    done:{title:'C’est prêt.', text:isPerso() ? 'Vos réponses sont ajoutées au début de chaque texte à copier. Dans « Mon profil », vous pouvez aussi les enregistrer dans la mémoire de votre IA.' : 'Vos réponses sont ajoutées au début de chaque texte à copier, avec la présentation de votre entreprise.', btn:'Faire ma première demande',
       preview:() => promptPreview(),
       after:() => { if ((location.hash || '#accueil') === '#accueil') route(); else location.hash = '#accueil'; setTimeout(() => { const t = $('#askInput'); t && t.focus(); }, 350); }}});
 }

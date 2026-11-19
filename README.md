@@ -33,7 +33,16 @@ npm run dev
 
 Il s'agit d'une **migration React progressive**, pas d'une réécriture React native : React monte la structure et les composants de pages ; les fonctions historiques génèrent encore le HTML interne et pilotent les interactions. Cela limite les régressions et garde les comportements du prototype. Les données de démonstration restent dans le navigateur.
 
-La navigation utilise toujours les ancres `#accueil`, `#bibliotheque`, `#formations`, etc. React suit ces changements de route ; le moteur historique construit le contenu de la vue choisie. Pour une migration intégrale à React (hooks/état/composants JSX dans chaque page), il faut remplacer progressivement les modules `legacy`.
+Adresses du site :
+
+- `/` : présentation (et `/offres` pour arriver sur les prix) ;
+- `/login` : connexion (en démo, on choisit le compte à simuler : salarié, dirigeant ou particulier) ;
+- `/inscription`, `/inscription/particulier`, `/inscription/entreprise`, `/invitation/<code>`, `/contact` ;
+- `/dashboard` : le site connecté. Ses rubriques gardent une ancre : `/dashboard#formations`, `/dashboard#profil`…
+
+Les anciennes adresses à ancre (`/#decouverte`, `/#formations`) sont converties automatiquement. À la mise en ligne, l’hébergeur doit renvoyer `index.html` pour toutes ces adresses (réglage « SPA » ou « rewrite »).
+
+Dans le site connecté, la navigation utilise les ancres `#accueil`, `#bibliotheque`, `#formations`, etc. React suit ces changements de route ; le moteur historique construit le contenu de la vue choisie. Pour une migration intégrale à React (hooks/état/composants JSX dans chaque page), il faut remplacer progressivement les modules `legacy`.
 
 ### Vérification
 

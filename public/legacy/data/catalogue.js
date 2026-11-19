@@ -412,8 +412,17 @@ const situationLabel = (p) => {
 };
 
 /* Questionnaire du profil (inscription et page « Mon profil ») : les réponses alimentent le contexte des prompts */
+/* Secteurs (partagés par le profil d'un particulier salarié et la présentation de l'entreprise) */
+const SECTORS = ["Industrie", "Bâtiment et travaux", "Commerce et distribution", "Services aux entreprises", "Santé et social", "Hôtellerie et restauration", "Transport et logistique", "Numérique", "Agriculture et agroalimentaire", "Fonction publique", "Autre secteur"];
+const SIZES = ["1 à 10", "11 à 49", "50 à 249", "250 et plus"];
+/* Situations où l'on travaille : on y demande l'expérience et la signature */
+const WORKING = ["salarie", "independant", "freelance", "dirigeant"];
+/* Le compte est-il celui d'un particulier ? (défini dans utils-state.js, chargé après ce fichier) */
+const persoAccount = () => typeof isPerso === "function" && isPerso();
+
 function empQuestions(p) {
   const P = personaOf(p);
+  const sit = p.situation || "salarie";
   const Q = [
     {
       id: "situation",
@@ -426,7 +435,11 @@ function empQuestions(p) {
       otherPh: "Précisez (par exemple : bénévole, retraité·e, enseignant·e…)",
     },
   ];
-  if (P.job) Q.push({ id: "job", type: P.job.type || "single", ...P.job });
+  /* Salarié ou dirigeant d'un compte entreprise : la situation est connue, on ne la redemande pas.
+     Pour le dirigeant, le secteur est déjà dans la présentation de l'entreprise. */
+  const membre = !persoAccount() && typeof S !== "undefined" && S.account && S.account.type === "membre";
+  if (membre) Q.shift();
+  if (P.job && !(membre && sit === "dirigeant")) Q.push({ id: "job", type: P.job.type || "single", ...P.job });
   if (P.study)
     Q.push({
       id: "studyLevel",
@@ -436,6 +449,22 @@ function empQuestions(p) {
       other: "Autre niveau",
       otherPh: "Précisez votre niveau",
     });
+  /* Particulier salarié : on situe son employeur sans le nommer. Dans un compte entreprise, c'est le dirigeant
+     qui présente l'entreprise (espace dirigeant) : la question ne se pose pas. */
+  if (persoAccount() && sit === "salarie")
+    Q.push(
+      { id: "employerSector", type: "single", title: "Dans quel secteur travaille votre employeur ?", help: "Facultatif, et sans donner son nom : pour des exemples proches de votre quotidien.", options: SECTORS, other: "Autre secteur", otherPh: "Précisez le secteur (par exemple : imprimerie)" },
+      { id: "employerSize", type: "single", title: "Quelle est sa taille ?", options: SIZES.map((s) => s + " salariés") }
+    );
+  if (persoAccount() && sit === "dirigeant")
+    Q.push(
+      { id: "companyActivity", type: "textarea", title: "Que fait votre entreprise, en une ou deux phrases ?", help: "L’IA en tiendra compte dans chacune de vos demandes.", ph: "Par exemple : nous installons des panneaux solaires chez les particuliers, en Bretagne." },
+      { id: "employerSize", type: "single", title: "Combien de personnes y travaillent ?", options: SIZES.map((s) => s + " salariés") }
+    );
+  if (sit === "etudiant" || sit === "recherche")
+    Q.push({ id: "project", type: "textarea", title: sit === "etudiant" ? "Sur quoi travaillez-vous en ce moment ?" : "Quel est votre projet en ce moment ?", help: "Mémoire, stage, exposé, reconversion… L’IA partira de là.", ph: sit === "etudiant" ? "Par exemple : un mémoire de master sur le commerce équitable, à rendre en juin." : "Par exemple : je vise un poste d’assistante RH dans une PME, autour de Nantes." });
+  if (WORKING.includes(sit))
+    Q.push({ id: "experience", type: "single", title: sit === "dirigeant" ? "Depuis combien de temps dirigez-vous ?" : "Depuis combien de temps exercez-vous ce métier ?", help: "Pour régler le niveau de détail : l’IA n’explique pas les bases à un expert.", options: ["Moins de 2 ans", "2 à 5 ans", "6 à 15 ans", "Plus de 15 ans"] });
   Q.push(
     {
       id: "tasks",
@@ -498,6 +527,23 @@ function empQuestions(p) {
       exclusive: "none",
       other: "other-ai",
       otherPh: "Lesquels ? (par exemple : Notion, un outil de transcription)",
+    },
+    {
+      id: "region",
+      type: "text",
+      title: "Où êtes-vous basé·e ?",
+      help: "Ville, région ou pays : pour les règles, les prix et les adresses qui vous concernent.",
+      ph: "Par exemple : Lyon, ou la Belgique",
+    },
+    ...(WORKING.includes(sit)
+      ? [{ id: "signature", type: "text", title: "Comment signez-vous vos messages ?", help: "L’IA terminera vos mails avec cette signature.", ph: "Par exemple : Camille Martin, chargée de clientèle" }]
+      : []),
+    {
+      id: "avoid",
+      type: "textarea",
+      title: "Qu’est-ce que l’IA doit éviter dans ses réponses ?",
+      help: "Vos règles à vous. Elles seront rappelées à chaque demande.",
+      ph: "Par exemple : le jargon, les emojis, les phrases à rallonge, les anglicismes, les listes de 10 points.",
     },
     {
       id: "notes",
@@ -649,7 +695,8 @@ const CO_Q = [
 const ms = (p) => p.tools.includes("ms365");
 const gg = (p) => p.tools.includes("google");
 /* En-tête de chaque prompt : présentation de l'entreprise + profil du salarié (voir contextBlock) */
-const me = (p) => contextBlock();
+/* Le contexte (profil, entreprise) est ajouté par buildPrompt (recommandations.js), pas par chaque tâche. */
+const me = () => "";
 const tn = (p, d) => (toneName(p) ? toneName(p).toLowerCase() : d);
 
 const INTENTS = [
@@ -1127,7 +1174,7 @@ const GENERAL = {
   prompt: (p) =>
     `${me(
       p
-    )}Voici ce que je dois faire : [décrivez la tâche].\nContexte : [pour qui, pour quand, avec quelles informations].\nRésultat attendu : [un texte, une liste, un tableau…].\nPosez-moi des questions si quelque chose n’est pas clair.`,
+    )}Précisions utiles : [pour qui, pour quand, avec quelles informations].\nRésultat attendu : [un texte, une liste, un tableau…], prêt à être utilisé.`,
 };
 
 const JOB_TIPS = {

@@ -17,7 +17,10 @@ const DONE_MARK = '<span class="done-mark" aria-hidden="true"><svg viewBox="0 0 
 /* ——— État de démonstration (reste dans ce navigateur) ——— */
 const KEY = 'biblia-demo-v2';
 const DEFAULTS = () => ({
-  profile:{situation:'', situationOther:'', job:'', jobOther:'', studyLevel:'', studyLevelOther:'', tasks:[], tasksOther:'', audience:[], audienceOther:'', tone:'', toneOther:'', format:'', formatOther:'', langs:[], langsOther:'', level:'', tools:[], toolsOther:'', notes:'', done:false},
+  /* Type de compte (démo) : « particulier », ou « membre » d'une entreprise avec le rôle « salarie » ou « administrateur ».
+     Il est déposé par /login et par l'inscription (src/public/commun.jsx, transmettreDemo). */
+  account:{type:'membre', role:'administrateur', entreprise:''},
+  profile:{situation:'', situationOther:'', job:'', jobOther:'', studyLevel:'', studyLevelOther:'', tasks:[], tasksOther:'', audience:[], audienceOther:'', tone:'', toneOther:'', format:'', formatOther:'', langs:[], langsOther:'', level:'', tools:[], toolsOther:'', employerSector:'', employerSectorOther:'', employerSize:'', companyActivity:'', project:'', experience:'', region:'', signature:'', avoid:'', memoryOn:false, notes:'', done:false},
   company:{name:'', sector:'', sectorOther:'', size:'', activity:'', clients:[], clientsOther:'', area:'', areaOther:'', values:[], valuesOther:'', voice:'', voiceOther:'', rules:'', notes:'', done:false},
   allowed:['chatgpt','lechat','claude','copilot','perplexity','deepl','canva','gamma'],
   hidden:[], dock:['chatgpt','lechat','claude','copilot','perplexity','deepl'], done:['tc1'], rev:{tc1:{n:0,due:0}}, ratings:{}, suggestions:[], invites:0, welcomeOff:false,
@@ -27,7 +30,21 @@ let S = DEFAULTS();
 try { const raw = localStorage.getItem(KEY); if (raw) S = Object.assign(DEFAULTS(), JSON.parse(raw)); S.profile = Object.assign(DEFAULTS().profile, S.profile); S.company = Object.assign(DEFAULTS().company, S.company); } catch (e) {}
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
 /* Les écrans d'inscription (React) transmettent la situation choisie (étudiant, freelance…) au profil. */
-window.BiblIADemo = ({profile, company} = {}) => { if (profile) Object.assign(S.profile, profile); if (company) Object.assign(S.company, company); save(); };
+window.BiblIADemo = ({profile, company, account} = {}) => {
+  if (account) { S.account = Object.assign({}, account); if (account.type === 'particulier') S.allowed = AIS.map(a => a.id); }
+  if (profile) Object.assign(S.profile, profile); if (company) Object.assign(S.company, company); save(); applyAccount();
+};
+/* Particulier : pas d'entreprise, donc ni espace dirigeant, ni présentation d'entreprise, ni « IA autorisées ».
+   Salarié : pas d'espace dirigeant. La classe posée sur <html> masque les liens concernés (extra.css). */
+const isPerso = () => !!S.account && S.account.type === 'particulier';
+const isAdmin = () => !isPerso() && (!S.account || S.account.role === 'administrateur');
+const allowedPhrase = () => isPerso() ? 'de votre bibliothèque' : 'autorisées par votre entreprise';
+function applyAccount() {
+  const r = document.documentElement.classList;
+  r.toggle('compte-perso', isPerso()); r.toggle('compte-admin', isAdmin()); r.toggle('compte-salarie', !isPerso() && !isAdmin());
+}
+if (isPerso() && S.allowed.length < AIS.length) S.allowed = AIS.map(a => a.id);
+applyAccount();
 const isAllowed = id => S.allowed.includes(id);
 const isHidden = id => S.hidden.includes(id);
 const visibleAIs = () => AIS.filter(a => isAllowed(a.id) && !isHidden(a.id));
@@ -69,21 +86,10 @@ function closeModal(instant) {
   m.classList.add('closing'); setTimeout(done, isSmall() ? 220 : 160);
 }
 
-/* ——— Thème ——— */
-function applyTheme(t) {
-  const root = document.documentElement;
-  if (t) root.setAttribute('data-theme', t); else root.removeAttribute('data-theme');
-  const dark = t ? t === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
-  const b = $('#themeBtn'); if (!b) return;
-  b.innerHTML = ic(dark ? 'sun' : 'moon', dark ? 'i-sun' : 'i-moon');
-  b.setAttribute('aria-label', dark ? 'Passer en thème clair' : 'Passer en thème sombre');
-}
-let theme = null; try { theme = localStorage.getItem(KEY + '-theme'); } catch (e) {}
-$('#themeBtn') && $('#themeBtn').addEventListener('click', () => {
-  const dark = document.documentElement.getAttribute('data-theme') ? document.documentElement.getAttribute('data-theme') === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
-  theme = dark ? 'light' : 'dark'; applyTheme(theme);
-  try { localStorage.setItem(KEY + '-theme', theme); } catch (e) {}
-});
+/* ——— Thème ———
+   Géré par src/theme.js (bouton data-theme-btn dans l'en-tête, animation du passage d'un thème à l'autre). */
+function applyTheme(t) { if (window.BiblTheme) window.BiblTheme.appliquer(t); }
+let theme = window.BiblTheme ? window.BiblTheme.actuel() : null;
 
 /* ——— Barre latérale « Mes IA » ———
    Les logos des IA autorisées, toujours visibles. Au survol, le logo grossit (et ses voisins un peu,

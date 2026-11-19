@@ -4,7 +4,7 @@ function resolveRoute() {
   const h = decodeURIComponent(location.hash.slice(1));
   if (h.startsWith('ia-') && AI[h.slice(3)]) return {fn:viewFiche, arg:h.slice(3), nav:'bibliotheque'};
   if (h.startsWith('lecon-') && LESSONS[h.slice(6)]) { const l = LESSONS[h.slice(6)]; return {fn:viewTraining, arg:l.course === 'tc' || isAllowed(l.course) ? l.id : null, nav:'formations'}; }
-  const r = ROUTES[h] ? h : 'accueil';
+  const r = ROUTES[h] && !(h === 'dirigeant' && !isAdmin()) ? h : 'accueil'; /* l'espace dirigeant n'existe que pour l'administrateur */
   return {fn:ROUTES[r], nav:r === 'mises-a-jour' ? 'nouveautes' : r === 'parcours' ? 'formations' : r};
 }
 function renderView(keep) {

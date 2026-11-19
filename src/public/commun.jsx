@@ -1,6 +1,7 @@
 /* Briques partagées par les pages publiques (présentation, inscription, invitation, contact). */
 import React, { useEffect, useId, useState } from 'react';
 import { getOffres } from '../api/client';
+import ThemeToggle from '../components/ThemeToggle';
 
 /* « #inscription-particulier?offre=solo&periode=annuelle » → { route, params } */
 export function lireHash(hash) {
@@ -48,7 +49,7 @@ export function LogoIA({ id, taille = 40 }) {
 }
 
 export function Marque() {
-  return <a className="brand pub-brand" href="#decouverte" aria-label="Bibl.IA, présentation">Bibl<b>.</b>IA</a>;
+  return <a className="brand pub-brand" href="/" aria-label="Bibl.IA, présentation">Bibl<b>.</b>IA</a>;
 }
 
 export function Fleche() {
@@ -64,10 +65,11 @@ export function BarrePublique({ verOffres, sansInscription }) {
         <nav className="pub-top-act" aria-label="Navigation">
           {verOffres
             ? <button type="button" className="btn btn-quiet pub-hide-s" onClick={verOffres}>Offres</button>
-            : <a className="btn btn-quiet pub-hide-s" href="#decouverte-offres">Offres</a>}
-          {/* La vraie connexion passera par le service de connexion (contrat § 1). En démo, elle ouvre le site. */}
-          <a className="btn btn-quiet" href="#accueil">Se connecter</a>
-          {!sansInscription && <a className="btn btn-primary btn-sm" href="#inscription">Créer un compte</a>}
+            : <a className="btn btn-quiet pub-hide-s" href="/offres">Offres</a>}
+          <ThemeToggle />
+          {/* La vraie connexion passera par le service de connexion (contrat § 1). En démo : /login simule le compte. */}
+          <a className="btn btn-quiet" href="/login">Se connecter</a>
+          {!sansInscription && <a className="btn btn-primary btn-sm" href="/inscription">Créer un compte</a>}
         </nav>
       </div>
     </header>
@@ -80,9 +82,9 @@ export function PiedPublic() {
       <div className="pub-wrap pub-foot-in">
         <span>Bibl<b>.</b>IA · La bibliothèque des IA pour le travail</span>
         <span className="pub-foot-l">
-          <a className="ulink" href="#decouverte-offres">Offres</a>
-          <a className="ulink" href="#contact">Nous contacter</a>
-          <a className="ulink" href="#accueil">Se connecter</a>
+          <a className="ulink" href="/offres">Offres</a>
+          <a className="ulink" href="/contact">Nous contacter</a>
+          <a className="ulink" href="/login">Se connecter</a>
         </span>
       </div>
     </footer>
@@ -157,14 +159,17 @@ export function useTitreFocus(dep) {
 /* Démo : tant que le back n'existe pas, le site garde le profil dans ce navigateur (clé biblia-demo-v2).
    L'inscription y dépose la situation choisie, pour que le questionnaire « Mon profil » s'y adapte.
    Quand le back sera branché, ce sera l'objet « moi » (GET /api/moi) qui portera ces informations. */
-export function transmettreDemo({ profile, company }) {
+export function transmettreDemo({ profile, company, account }) {
   const CLE = 'biblia-demo-v2';
   try {
     const s = JSON.parse(localStorage.getItem(CLE) || '{}');
     if (profile) s.profile = { ...(s.profile || {}), ...profile };
     if (company) s.company = { ...(s.company || {}), ...company };
+    /* Type de compte : particulier, ou membre d'une entreprise (salarié ou administrateur).
+       Il décide de ce que le site montre (espace dirigeant, questions sur l'entreprise…). */
+    if (account) s.account = account;
     localStorage.setItem(CLE, JSON.stringify(s));
   } catch { /* stockage indisponible : le questionnaire demandera la situation */ }
   /* Si le site est déjà chargé dans cet onglet, on met aussi à jour sa copie en mémoire. */
-  if (typeof window.BiblIADemo === 'function') window.BiblIADemo({ profile, company });
+  if (typeof window.BiblIADemo === 'function') window.BiblIADemo({ profile, company, account });
 }

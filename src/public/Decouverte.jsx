@@ -66,7 +66,7 @@ function Haut({ verOffres }) {
           <h1 id="hero-t" className="hero-h">La bibliothèque des IA pour <em>bien travailler</em> avec elles</h1>
           <p className="hero-sub">Dites ce que vous devez faire&nbsp;: Bibl.IA vous indique l’IA adaptée et vous donne une demande prête à compléter. Puis, IA après IA, vous progressez de l’essentiel jusqu’aux usages avancés.</p>
           <div className="hero-cta">
-            <a className="btn btn-primary has-arrow" href="#inscription">Créer un compte gratuit <Fleche /></a>
+            <a className="btn btn-primary has-arrow" href="/inscription">Créer un compte gratuit <Fleche /></a>
             <button type="button" className="btn btn-ghost" onClick={verOffres}>Voir les offres</button>
           </div>
           <ul className="hero-facts" aria-label="En bref">
@@ -372,27 +372,27 @@ function Offres() {
           <article className="offer o1">
             <h3>{d.nom}</h3>
             <Prix valeur={d.prix_mensuel_ttc ? euros(d.prix_mensuel_ttc) : 'Gratuit'} detail="Pour découvrir, sans limite de durée" />
-            <a className="btn btn-ghost" href="#inscription-particulier?offre=decouverte">Commencer gratuitement</a>
+            <a className="btn btn-ghost" href="/inscription/particulier?offre=decouverte">Commencer gratuitement</a>
             <Inclus items={d.inclus} />
           </article>
           <article className="offer o2">
             <h3>{s.nom}</h3>
             <Prix valeur={an ? euros(s.prix_annuel_ttc) : euros(s.prix_mensuel_ttc)} unite={an ? '/an' : '/mois'}
               detail={an ? `soit ${euros(Math.round((s.prix_annuel_ttc / 12) * 100) / 100)} par mois, ${moinsCher(s.prix_annuel_ttc / 12, s.prix_mensuel_ttc)} % de moins` : 'Sans engagement'} />
-            <a className="btn btn-primary" href={`#inscription-particulier?offre=solo&periode=${periode}`}>Choisir Plus</a>
+            <a className="btn btn-primary" href={`/inscription/particulier?offre=solo&periode=${periode}`}>Choisir Plus</a>
             <Inclus items={s.inclus} />
           </article>
           <p className="offers-l l2">Pour votre entreprise <span>prix HT</span></p>
           <article className="offer o3">
             <h3>{e.nom} <span className="tag">{e.salaries_min} à {e.salaries_max} salariés</span></h3>
             <Prix valeur={euros(prixE)} unite="/salarié/mois" detail={an ? `Facturé à l’année, ${moinsCher(e.prix_annuel_ht_par_salarie_par_mois, e.prix_mensuel_ht_par_salarie)} % de moins` : 'Facturé au mois, sans engagement'} />
-            <a className="btn btn-primary" href={`#inscription-entreprise?periode=${periode}`}>Essayer {e.essai_jours} jours gratuitement</a>
+            <a className="btn btn-primary" href={`/inscription/entreprise?periode=${periode}`}>Essayer {e.essai_jours} jours gratuitement</a>
             <Inclus items={e.inclus} />
           </article>
           <article className="offer o4">
             <h3>{m.nom} <span className="tag tag-line">{m.salaries_min} salariés et plus</span></h3>
             <Prix valeur="Sur devis" detail="Selon la taille et l’accompagnement" />
-            <a className="btn btn-ghost" href="#contact">Nous contacter</a>
+            <a className="btn btn-ghost" href="/contact">Nous contacter</a>
             <Inclus items={m.inclus} />
           </article>
         </div>
@@ -446,8 +446,8 @@ function Fin() {
         </div>
         <div className="fin-cta">
           <p className="fin-big">Votre prochaine demande à une IA peut être la bonne.</p>
-          <a className="btn btn-primary has-arrow" href="#inscription">Créer un compte gratuit <Fleche /></a>
-          <a className="ulink fin-alt" href="#inscription-entreprise">Équiper mon entreprise, 14 jours d’essai</a>
+          <a className="btn btn-primary has-arrow" href="/inscription">Créer un compte gratuit <Fleche /></a>
+          <a className="ulink fin-alt" href="/inscription/entreprise">Équiper mon entreprise, 14 jours d’essai</a>
         </div>
       </div>
     </Bloc>

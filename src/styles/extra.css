@@ -1,1 +1,46 @@
 :root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}
+/* ——— Bouton clair / sombre (toutes les pages) ———
+   Le soleil et la lune se croisent : l'un tourne et rétrécit pendant que l'autre arrive. */
+.theme-btn{position:relative;overflow:hidden;flex:none}
+.theme-btn .i{position:absolute;inset:0;margin:auto;transition:transform .4s var(--ease-out),opacity .2s ease}
+.theme-btn .i-sun{opacity:0;transform:rotate(-90deg) scale(.4)}
+.theme-btn .i-moon{opacity:1;transform:none}
+:root[data-theme="dark"] .theme-btn .i-sun{opacity:1;transform:none}
+:root[data-theme="dark"] .theme-btn .i-moon{opacity:0;transform:rotate(90deg) scale(.4)}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]) .theme-btn .i-sun{opacity:1;transform:none}
+  :root:not([data-theme="light"]) .theme-btn .i-moon{opacity:0;transform:rotate(90deg) scale(.4)}
+}
+/* Passage d'un thème à l'autre : le nouveau thème s'ouvre en cercle depuis le bouton (src/theme.js) */
+::view-transition-old(root),::view-transition-new(root){animation:none;mix-blend-mode:normal}
+::view-transition-new(root){z-index:2}
+/* Sans View Transitions : les couleurs glissent en fondu */
+.theme-fondu,.theme-fondu *,.theme-fondu *::before,.theme-fondu *::after{
+  transition:background-color .35s ease,color .35s ease,border-color .35s ease,fill .35s ease,stroke .35s ease!important}
+@media (prefers-reduced-motion:reduce){.theme-btn .i{transition:opacity .15s ease}}
+
+/* ——— Type de compte : ce qui n'existe que pour l'administrateur d'une entreprise ——— */
+html:not(.compte-admin) [data-r="dirigeant"],html:not(.compte-admin) a[href="#dirigeant"]{display:none!important}
+html.compte-perso .foot-ent{display:none}
+
+/* ——— Skill proposé sous la recommandation ——— */
+.skillbox{border:1px solid var(--line);border-radius:12px;background:var(--bg)}
+.skillbox summary{list-style:none;display:flex;align-items:center;gap:10px;padding:14px 16px;cursor:pointer;font-size:15.5px;line-height:1.4;border-radius:12px;transition:background-color .15s ease}
+.skillbox summary::-webkit-details-marker{display:none}
+.skillbox summary .i{color:var(--accent);flex:none}
+.skillbox summary span{flex:1}
+.skillbox summary::after{content:"";width:7px;height:7px;flex:none;border-right:1.5px solid var(--fg-3);border-bottom:1.5px solid var(--fg-3);transform:translateY(-2px) rotate(45deg);transition:transform .2s var(--ease-out)}
+.skillbox[open] summary::after{transform:translateY(1px) rotate(-135deg)}
+@media (hover:hover){.skillbox summary:hover{background:var(--sunk)}}
+.skillbox-in{display:flex;flex-direction:column;gap:16px;padding:4px 16px 18px}
+.skillbox[open] .skillbox-in{animation:otherIn .22s var(--ease-out) both}
+.skill-cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.skill-cols .label{margin-bottom:8px}
+.skillbox .prompt pre{max-height:240px;font-size:14.5px}
+@media (max-width:760px){.skill-cols{grid-template-columns:minmax(0,1fr)}}
+
+/* ——— Mémoire de l'IA (Mon profil) ——— */
+.mem-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;border-top:1px solid var(--line)}
+.mem-list li{display:flex;gap:14px;align-items:flex-start;padding:14px 0;border-bottom:1px solid var(--line)}
+.mem-list .tile{--s:32px}
+.mem-on input:checked+span{color:var(--fg);text-decoration:none}

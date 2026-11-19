@@ -4,11 +4,12 @@ function viewProfile() {
   const v = $('#view'), d = JSON.parse(JSON.stringify(S.profile));
   const hid = S.hidden.filter(isAllowed).map(id => AI[id]);
   v.innerHTML = `<div class="wrap"><header class="phead"><h1 class="h1 split">Des demandes à votre mesure</h1>
-    <p class="lead">Vos réponses sont ajoutées au début de chaque texte à copier, pour que l’IA vous réponde comme un collègue qui connaît votre travail. Votre responsable ne les voit pas.</p></header>
+    <p class="lead">Vos réponses servent à écrire de meilleurs textes à copier, pour que l’IA vous réponde comme un collègue qui connaît votre travail.${isPerso() ? '' : ' Votre responsable ne les voit pas.'}</p></header>
     <div id="profQ">${profQuestions(d)}</div>
     <div class="row" style="padding-block:8px 48px"><button class="btn btn-primary" type="button" id="saveProfile">Enregistrer mon profil</button><button class="btn btn-ghost" type="button" data-act="onboard">Répondre question par question</button></div>
-    <section class="form-sec reveal"><div class="stack"><h2 class="h4">Aperçu de votre contexte</h2><p class="small muted">Placé au début de chaque texte à copier, avec la présentation de l’entreprise faite par votre dirigeant.</p></div>
+    <section class="form-sec reveal"><div class="stack"><h2 class="h4">Aperçu de votre contexte</h2><p class="small muted">${isPerso() ? 'Placé au début de chaque texte à copier.' : 'Placé au début de chaque texte à copier, avec la présentation de l’entreprise faite par votre dirigeant.'}</p></div>
       <div class="ctx"><pre id="ctxPrev">${esc(promptPreview())}</pre></div></section>
+    ${memorySection()}
     <section class="form-sec reveal"><div class="stack"><h2 class="h4">Ma page d’accueil</h2><p class="small muted">La zone de saisie reste toujours en haut.</p></div>
       <div class="stack" style="gap:16px"><p>${S.blocks.filter(b => b.on).map(b => BLOCK_NAMES[b.id]).join(' · ') || 'Aucun bloc affiché sous la zone de saisie.'}</p><button class="btn btn-ghost" type="button" data-act="home-setup" style="align-self:flex-start">${ic('sliders', 'i-sm')}Personnaliser l’accueil</button></div></section>
     <section class="form-sec reveal"><div class="stack"><h2 class="h4">IA masquées</h2><p class="small muted">Elles n’apparaissent plus dans votre bibliothèque ni dans vos recommandations.</p></div>
@@ -27,7 +28,12 @@ function viewProfile() {
     qBox.innerHTML = profQuestions(d); bindAll();
     const f = $('[data-q-situation][aria-pressed="true"]', qBox) || $('[data-q-situation]', qBox); f && f.focus();
   });
-  $('#saveProfile').addEventListener('click', () => { S.profile = JSON.parse(JSON.stringify(Object.assign(d, {done:true}))); save(); /* une copie : les clics suivants ne changent rien tant qu'on n'enregistre pas */ $('#ctxPrev').textContent = promptPreview(); toast('Profil enregistré. Vos prompts en tiennent compte.'); });
+  $('#saveProfile').addEventListener('click', () => { S.profile = JSON.parse(JSON.stringify(Object.assign(d, {done:true, memoryOn:S.profile.memoryOn}))); save(); /* une copie : les clics suivants ne changent rien tant qu'on n'enregistre pas */ $('#ctxPrev').textContent = promptPreview(); $('#memText').textContent = memoryText(); toast('Profil enregistré. Vos prompts en tiennent compte.'); });
+  $('#memCopy').addEventListener('click', e => copyText(memoryText(), e.currentTarget, $('#memText')));
+  $('#memOn').addEventListener('change', e => {
+    S.profile.memoryOn = e.currentTarget.checked; save();
+    toast(S.profile.memoryOn ? 'Noté : votre contexte n’est plus répété dans les textes à copier.' : 'Votre contexte est de nouveau ajouté aux textes à copier.');
+  });
   $$('[data-unhide]', v).forEach(b => b.addEventListener('click', () => { toggleHidden(b.dataset.unhide); renderView(true); }));
   const rb = $('#resetBtn'); let armed = false;
   rb.addEventListener('click', () => {
@@ -36,11 +42,24 @@ function viewProfile() {
   });
 }
 
+/* ——— Le contexte dans la mémoire de l'IA (texte et marche à suivre : recommandations.js) ——— */
+function memorySection() {
+  const mine = MEMORY_HOWTO.filter(m => AI[m.ai] && isAllowed(m.ai) && !isHidden(m.ai));
+  return `<section class="form-sec reveal" id="memSec"><div class="stack"><h2 class="h4">Enregistrer votre contexte dans l’IA</h2>
+      <p class="small muted">Enregistré une fois dans la mémoire de votre IA, votre contexte n’a plus besoin d’être répété : vos textes à copier deviennent plus courts, et l’IA vous connaît même quand vous lui écrivez sans passer par Bibl.IA.</p></div>
+    <div class="stack" style="gap:18px">
+      <div class="prompt"><div class="prompt-h"><span>Le texte à enregistrer</span><button class="btn btn-quiet copy" type="button" id="memCopy">${ic('copy', 'i-sm')}Copier</button></div><pre id="memText">${esc(memoryText())}</pre></div>
+      ${mine.length ? `<ul class="mem-list">${mine.map(m => `<li>${tile(m.ai)}<span class="stack" style="gap:2px"><b>${esc(AI[m.ai].short || AI[m.ai].name)}</b><span class="small muted">${esc(m.steps)}</span></span></li>`).join('')}</ul>` : ''}
+      <p class="note">Les intitulés des menus changent d’une version à l’autre. Dans le doute, envoyez le texte dans une conversation en ajoutant « Retenez ces informations sur moi ».</p>
+      <label class="lchk mem-on"><input type="checkbox" id="memOn"${S.profile.memoryOn ? ' checked' : ''}><span>C’est fait : ne plus ajouter mon contexte au début des textes à copier</span></label>
+    </div></section>`;
+}
+
 /* ——— Suggérer une IA ——— */
 function openSuggest() {
   const m = openModal(`<div class="modal-top"><h2 class="h4">Suggérer une IA manquante</h2><button class="rp-close" data-close aria-label="Fermer">${ic('x')}</button></div>
     <form class="modal-in stack" style="gap:20px" id="sugForm" novalidate>
-      <p class="muted">Votre responsable recevra votre proposition et décidera de l’ajouter aux IA autorisées.</p>
+      <p class="muted">${isPerso() ? 'Nous étudions chaque proposition pour enrichir la bibliothèque.' : 'Votre responsable recevra votre proposition et décidera de l’ajouter aux IA autorisées.'}</p>
       <div class="field"><label for="sugName">Nom de l’IA</label><input class="input" id="sugName" required autofocus placeholder="Par exemple : un outil de transcription"></div>
       <div class="field"><label for="sugUrl">Adresse du site (facultatif)</label><input class="input" id="sugUrl" type="url" placeholder="https://"></div>
       <div class="field"><label for="sugWhy">À quoi vous servirait-elle ?</label><textarea class="input" id="sugWhy" placeholder="Par exemple : transcrire mes réunions avec les clients"></textarea></div>
@@ -51,7 +70,7 @@ function openSuggest() {
     const name = $('#sugName', m).value.trim();
     if (!name) { $('#sugErr', m).hidden = false; $('#sugName', m).focus(); return; }
     S.suggestions.unshift({name, url:$('#sugUrl', m).value.trim(), why:$('#sugWhy', m).value.trim(), date:new Date().toLocaleDateString('fr-FR', {day:'numeric', month:'long'})});
-    save(); closeModal(); toast(`Merci ! « ${name} » est transmise à votre responsable (démonstration : rien n’est envoyé).`);
+    save(); closeModal(); toast(`Merci ! « ${name} » est transmise ${isPerso() ? 'à l’équipe Bibl.IA' : 'à votre responsable'} (démonstration : rien n’est envoyé).`);
     if ((location.hash.slice(1)) === 'profil') renderView(true);
   });
 }
