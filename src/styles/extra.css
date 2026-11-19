@@ -1,23 +1,16 @@
 :root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}
 /* ——— Bouton clair / sombre (toutes les pages) ———
-   Le soleil et la lune se croisent : l'un tourne et rétrécit pendant que l'autre arrive. */
-.theme-btn{position:relative;overflow:hidden;flex:none}
-.theme-btn .i{position:absolute;inset:0;margin:auto;transition:transform .4s var(--ease-out),opacity .2s ease}
-.theme-btn .i-sun{opacity:0;transform:rotate(-90deg) scale(.4)}
-.theme-btn .i-moon{opacity:1;transform:none}
-:root[data-theme="dark"] .theme-btn .i-sun{opacity:1;transform:none}
-:root[data-theme="dark"] .theme-btn .i-moon{opacity:0;transform:rotate(90deg) scale(.4)}
-@media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]) .theme-btn .i-sun{opacity:1;transform:none}
-  :root:not([data-theme="light"]) .theme-btn .i-moon{opacity:0;transform:rotate(90deg) scale(.4)}
-}
+   Une seule icône, remplacée par src/theme.js ; au changement, elle arrive en tournant. */
+.theme-btn{flex:none}
+.theme-btn.is-turn .theme-ico{animation:themeTurn .45s var(--ease-out) both}
+@keyframes themeTurn{from{opacity:0;transform:rotate(-90deg) scale(.5)}}
 /* Passage d'un thème à l'autre : le nouveau thème s'ouvre en cercle depuis le bouton (src/theme.js) */
 ::view-transition-old(root),::view-transition-new(root){animation:none;mix-blend-mode:normal}
 ::view-transition-new(root){z-index:2}
 /* Sans View Transitions : les couleurs glissent en fondu */
 .theme-fondu,.theme-fondu *,.theme-fondu *::before,.theme-fondu *::after{
   transition:background-color .35s ease,color .35s ease,border-color .35s ease,fill .35s ease,stroke .35s ease!important}
-@media (prefers-reduced-motion:reduce){.theme-btn .i{transition:opacity .15s ease}}
+@media (prefers-reduced-motion:reduce){.theme-btn.is-turn .theme-ico{animation:none}}
 
 /* ——— Type de compte : ce qui n'existe que pour l'administrateur d'une entreprise ——— */
 html:not(.compte-admin) [data-r="dirigeant"],html:not(.compte-admin) a[href="#dirigeant"]{display:none!important}
