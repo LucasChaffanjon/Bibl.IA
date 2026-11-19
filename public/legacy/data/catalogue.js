@@ -546,6 +546,13 @@ function empQuestions(p) {
       ph: "Par exemple : le jargon, les emojis, les phrases à rallonge, les anglicismes, les listes de 10 points.",
     },
     {
+      id: "styleSample",
+      type: "textarea",
+      title: "Collez un texte que vous avez écrit et dont vous êtes content",
+      help: "Un mail, un message, un post… sans nom ni donnée sensible. L’IA s’en servira pour écrire comme vous.",
+      ph: "Bonjour Madame Durand, merci pour votre retour rapide. Je vous confirme la livraison jeudi matin…",
+    },
+    {
       id: "notes",
       type: "textarea",
       title: "Autre chose d’important à savoir pour vous aider ?",

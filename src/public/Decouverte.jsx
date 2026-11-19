@@ -97,7 +97,7 @@ function Haut({ verOffres }) {
 /* ——— 2. Comment ça marche : le bloc épinglé ——— */
 
 const ETAPES = [
-  { t: 'Dites ce que vous devez faire', d: 'En une phrase, comme à un collègue. Ce que vous tapez reste dans votre navigateur : Bibl.IA ne l’envoie nulle part.' },
+  { t: 'Dites ce que vous devez faire', d: 'En une phrase, comme à un collègue. Notre IA lit votre demande pour vous répondre, puis l’efface : elle n’est jamais conservée.' },
   { t: 'Bibl.IA choisit l’IA adaptée', d: 'Pour un mail, une présentation ou une traduction, Bibl.IA vous dit quelle IA convient le mieux, et pourquoi.' },
   { t: 'Complétez la demande prête', d: 'La demande est déjà écrite, avec ce que Bibl.IA sait de vous et de votre entreprise. Il ne reste qu’à compléter le passage surligné, puis à la copier dans l’IA en un clic.' },
   { t: 'Progressez sur chaque IA', d: 'Commencez par l’essentiel, puis apprenez chaque IA, de la prise en main jusqu’aux usages avancés.' },
@@ -183,7 +183,7 @@ function Etapes({ refRepere }) {
                       <span className="chip">Résumer un compte rendu</span>
                       <span className="chip">Traduire un document</span>
                     </div>
-                    <p className="sc-note"><Icone id="lock" petit />Votre texte reste dans votre navigateur.</p>
+                    <p className="sc-note"><Icone id="lock" petit />Votre demande n’est jamais conservée.</p>
                   </Scene>
 
                   <Scene i={1} actif={actif}>
@@ -439,7 +439,7 @@ function Offres() {
 
 const FAQ = [
   ['Bibl.IA remplace-t-il ChatGPT ou Claude ?', 'Non. Bibl.IA vous aide à choisir l’IA adaptée et à bien lui parler. Vous utilisez ensuite l’IA elle-même, avec votre propre compte, souvent gratuit.'],
-  ['Ce que je tape est-il envoyé à Bibl.IA ?', 'Non. La recommandation est calculée dans votre navigateur. Le texte de votre demande ne quitte jamais votre ordinateur.'],
+  ['Que devient ce que je tape ?', 'Votre demande est envoyée à l’IA de Bibl.IA, qui choisit l’outil adapté et prépare votre prompt. Elle est effacée aussitôt après : ni Bibl.IA ni notre fournisseur d’IA ne la conservent, et elle ne sert jamais à entraîner un modèle. Votre employeur ne la voit jamais.'],
   ['Que se passe-t-il à la fin de l’essai ?', 'Sans abonnement, le compte passe en version gratuite. Rien n’est effacé : dès que vous vous abonnez, tout revient comme avant.'],
   ['Mon employeur voit-il ce que je fais ?', 'Il voit votre avancement dans les formations, et rien d’autre : ni vos demandes, ni les IA que vous ouvrez.'],
 ];

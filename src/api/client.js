@@ -130,6 +130,14 @@ export async function seConnecter({ email, motDePasse, type = 'salarie' }) {
   throw new ErreurApi(501, 'connexion_non_branchee', 'La connexion n’est pas encore branchée.');
 }
 
+/* POST /api/recommandation : l'IA de Bibl.IA choisit l'outil et écrit le prompt (contrat § 7).
+   La demande est lue puis effacée : ni le back ni le fournisseur d'IA ne la conservent.
+   En démo (FAUSSES_DONNEES), renvoie null : le site garde sa recommandation calculée dans le navigateur. */
+export async function recommander({ demande, profil, entreprise, ia_disponibles, deja_en_place }) {
+  if (FAUSSES_DONNEES) return null;
+  return appel('POST', '/api/recommandation', { demande, profil, entreprise, ia_disponibles, deja_en_place });
+}
+
 /* POST /api/inscription/particulier (contrat § 3.1) */
 export function inscrireParticulier({ offre, periode, situation, prenom, email }) {
   if (FAUSSES_DONNEES) return faux(() => ({
