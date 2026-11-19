@@ -47,11 +47,17 @@ html.snap-page{scroll-snap-type:y mandatory;scroll-padding-top:64px}
 .grow-in{display:flex;flex-direction:column;gap:clamp(28px,4svh,44px)}
 .grow-head{display:grid;grid-template-columns:1.05fr 1fr;gap:48px;align-items:end}
 .grow-head em{font-style:italic;font-weight:500;color:var(--accent)}
-.ladder{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;align-items:stretch}
-/* Les 4 niveaux ont la même taille et leur texte part du haut, à la même hauteur. */
-.ladder li{display:flex;flex-direction:column;justify-content:flex-start;gap:6px;padding:20px;border-radius:18px;
-  background:color-mix(in srgb,var(--accent) calc(4% + var(--i) * 9%),var(--surface));border:1px solid color-mix(in srgb,var(--accent) calc(10% + var(--i) * 10%),var(--line))}
-.ladder li:last-child{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.ladder{--step:28px;list-style:none;padding:0;margin:calc(var(--step) * 3) 0 0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;align-items:stretch}
+/* Les 4 niveaux : le texte part du haut, à la même hauteur partout ; le cadre, lui, monte d'une marche
+   à chaque niveau. Le cadre est dessiné par ::before, qui dépasse vers le haut de (niveau × marche). */
+.ladder li{position:relative;isolation:isolate;display:flex;flex-direction:column;justify-content:flex-start;gap:6px;padding:20px;border-radius:18px}
+.ladder li::before{content:"";position:absolute;z-index:-1;left:0;right:0;bottom:0;top:calc(var(--i) * var(--step) * -1);border-radius:18px;
+  background:color-mix(in srgb,var(--accent) calc(4% + var(--i) * 9%),var(--surface));border:1px solid color-mix(in srgb,var(--accent) calc(10% + var(--i) * 10%),var(--line));
+  clip-path:inset(0 round 18px);transition:clip-path .75s var(--ease-out) calc(var(--i) * 110ms + 80ms)}
+/* Avant l'apparition : tous les cadres à la même hauteur ; ils montent ensuite un à un. */
+.ladder.is-wait li::before{clip-path:inset(calc(var(--i) * var(--step)) 0 0 0 round 18px);transition:none}
+.ladder li:last-child{color:var(--on-accent)}
+.ladder li:last-child::before{background:var(--accent);border-color:var(--accent)}
 .ladder li:last-child h3{color:var(--on-accent)}
 .ladder li:last-child p,.ladder li:last-child .ladder-n{color:inherit;opacity:.85}
 .ladder-n{font-size:12.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--accent)}
@@ -361,8 +367,9 @@ mark.hlx{color:inherit;background-color:transparent;background-image:linear-grad
   .offers .o1,.offers .o2{grid-row:2/span 4}
   .offers-l.l2{grid-column:1/-1;grid-row:6;margin-top:16px}
   .offers .o3,.offers .o4{grid-row:7/span 4}
-  .ladder{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .ladder{grid-template-columns:repeat(2,minmax(0,1fr));margin-top:0}
   .ladder li{min-height:0}
+  .ladder li::before,.ladder.is-wait li::before{top:0;clip-path:none}
 }
 @media (max-width:960px){
   .phero-in{grid-template-columns:1fr;min-height:0;padding-block:40px 64px}

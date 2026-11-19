@@ -238,6 +238,21 @@ const NIVEAUX = [
 ];
 
 function Progresser() {
+  /* Les cadres sont déjà en escalier sans script. Si les animations sont permises, ils partent tous de la
+     même hauteur et montent un à un quand l'échelle entre à l'écran. */
+  const refEchelle = useRef(null);
+  useEffect(() => {
+    const ol = refEchelle.current;
+    if (!ol || reduit() || !('IntersectionObserver' in window)) return undefined;
+    ol.classList.add('is-wait');
+    const io = new IntersectionObserver(([e]) => {
+      if (!e.isIntersecting) return;
+      ol.classList.remove('is-wait');
+      io.disconnect();
+    }, { threshold: 0.45 });
+    io.observe(ol);
+    return () => io.disconnect();
+  }, []);
   return (
     <Bloc className="grow" aria-labelledby="grow-t">
       <div className="pub-wrap grow-in">
@@ -245,7 +260,7 @@ function Progresser() {
           <h2 id="grow-t" className="pub-h2">Devenez à l’aise avec <em>toutes</em> les IA</h2>
           <p className="pub-lead">L’objectif n’est pas de connaître une IA, mais de savoir vous servir de chacune, au bon moment. Bibl.IA vous fait progresser de l’essentiel jusqu’au niveau avancé, à votre rythme.</p>
         </div>
-        <ol className="ladder">
+        <ol className="ladder" ref={refEchelle}>
           {NIVEAUX.map((n, i) => (
             <li key={n.t} style={{ '--i': i }}>
               <span className="ladder-n">Niveau {i + 1}</span>
@@ -377,8 +392,8 @@ function Offres() {
           </article>
           <article className="offer o2">
             <h3>{s.nom}</h3>
-            <Prix valeur={an ? euros(s.prix_annuel_ttc) : euros(s.prix_mensuel_ttc)} unite={an ? '/an' : '/mois'}
-              detail={an ? `soit ${euros(Math.round((s.prix_annuel_ttc / 12) * 100) / 100)} par mois, ${moinsCher(s.prix_annuel_ttc / 12, s.prix_mensuel_ttc)} % de moins` : 'Sans engagement'} />
+            <Prix valeur={euros(an ? Math.round((s.prix_annuel_ttc / 12) * 100) / 100 : s.prix_mensuel_ttc)} unite="/mois"
+              detail={an ? `Facturé ${euros(s.prix_annuel_ttc)} par an, ${moinsCher(s.prix_annuel_ttc / 12, s.prix_mensuel_ttc)} % de moins` : 'Facturé au mois, sans engagement'} />
             <a className="btn btn-primary" href={`/inscription/particulier?offre=solo&periode=${periode}`}>Choisir Plus</a>
             <Inclus items={s.inclus} />
           </article>

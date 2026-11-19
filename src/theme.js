@@ -13,42 +13,56 @@ export const estSombre = () => {
   return t ? t === 'dark' : SOMBRE.matches;
 };
 
-function majBoutons() {
+function majBoutons(anime = false) {
   const sombre = estSombre();
   document.querySelectorAll('[data-theme-btn]').forEach((b) => {
     b.setAttribute('aria-label', sombre ? 'Passer en thème clair' : 'Passer en thème sombre');
     b.setAttribute('aria-pressed', String(sombre));
+    /* Une seule icône : la lune pour passer en sombre, le soleil pour revenir au clair. */
+    const use = b.querySelector('.theme-ico use');
+    const voulu = sombre ? '#i-sun' : '#i-moon';
+    if (use && use.getAttribute('href') !== voulu) {
+      use.setAttribute('href', voulu);
+      b.classList.remove('is-turn');
+      if (anime) { void b.offsetWidth; b.classList.add('is-turn'); }
+    }
   });
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.setAttribute('content', sombre ? '#0E1411' : '#F2F4F1');
 }
 
-export function appliquer(t) {
+export function appliquer(t, anime = false) {
   const root = document.documentElement;
   if (t) root.setAttribute('data-theme', t); else root.removeAttribute('data-theme');
-  majBoutons();
+  majBoutons(anime);
 }
 
+/* Thème visé par un changement en cours : deux clics rapides s'enchaînent correctement. */
+let cible = null;
 export function basculer(origine) {
-  const suivant = estSombre() ? 'light' : 'dark';
+  const actuel = cible || (estSombre() ? 'dark' : 'light');
+  const suivant = actuel === 'dark' ? 'light' : 'dark';
+  cible = suivant;
+  const fini = () => { if (cible === suivant) cible = null; };
   const changer = () => {
-    appliquer(suivant);
+    appliquer(suivant, true);
     try { localStorage.setItem(CLE, suivant); } catch { /* choix non mémorisé */ }
   };
-  if (REDUIT.matches) return changer();
+  if (REDUIT.matches) { changer(); return fini(); }
 
   if (!document.startViewTransition) {
     const root = document.documentElement;
     root.classList.add('theme-fondu');
     changer();
     setTimeout(() => root.classList.remove('theme-fondu'), 400);
-    return;
+    return fini();
   }
   /* Le cercle part du centre du bouton et couvre tout l'écran. */
   const r = origine ? origine.getBoundingClientRect() : { left: innerWidth / 2, top: 0, width: 0, height: 0 };
   const x = r.left + r.width / 2, y = r.top + r.height / 2;
   const rayon = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
   const transition = document.startViewTransition(changer);
+  transition.finished.finally(fini);
   transition.ready.then(() => {
     document.documentElement.animate(
       { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${rayon}px at ${x}px ${y}px)`] },
