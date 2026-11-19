@@ -562,7 +562,8 @@ export function Invitation({ code }) {
 /* ——— #contact ——— */
 
 export function Contact({ params }) {
-  const [v, setV] = useState({ nom: '', email: '', entreprise: '', taille: params.get('taille') || '', message: '' });
+  /* Tout le monde peut écrire : particulier ou entreprise, quelle que soit sa taille. */
+  const [v, setV] = useState({ pour: params.get('taille') ? 'entreprise' : 'moi', nom: '', email: '', entreprise: '', taille: params.get('taille') || '', message: '' });
   const [err, setErr] = useState({});
   const [envoi, setEnvoi] = useState(false);
   const [general, setGeneral] = useState('');
@@ -576,7 +577,8 @@ export function Contact({ params }) {
     setErr(er); setGeneral('');
     if (Object.values(er).some(Boolean)) { focusPremiereErreur(ev.currentTarget); return; }
     setEnvoi(true);
-    try { await envoyerContact({ nom: v.nom.trim(), email: v.email.trim(), entreprise: v.entreprise.trim(), taille: v.taille, message: v.message.trim() }); setOk(true); }
+    const pro = v.pour === 'entreprise';
+    try { await envoyerContact({ nom: v.nom.trim(), email: v.email.trim(), entreprise: pro ? v.entreprise.trim() : '', taille: pro ? v.taille : '', message: v.message.trim() }); setOk(true); }
     catch (x) { setGeneral(x.message); } finally { setEnvoi(false); }
   };
 
@@ -594,21 +596,32 @@ export function Contact({ params }) {
     <Cadre etroit>
       <Retour href="/">Présentation</Retour>
       <h1 className="reg-h" tabIndex={-1} ref={ref}>Nous contacter</h1>
-      <p className="reg-lead">Une entreprise de 50 salariés ou plus, une question avant de commencer&nbsp;? Écrivez-nous.</p>
+      <p className="reg-lead">Une question sur Bibl.IA, pour vous ou pour votre entreprise&nbsp;? Écrivez-nous, nous vous répondons sous deux jours ouvrés.</p>
       <form className="reg-form" onSubmit={envoyer} noValidate>
         <Champ label="Nom" erreur={err.nom}><input type="text" autoComplete="name" value={v.nom} onChange={maj('nom')} /></Champ>
         <Champ label="Mail" erreur={err.email}><input type="email" autoComplete="email" inputMode="email" value={v.email} onChange={maj('email')} /></Champ>
-        <div className="reg-2">
+        <fieldset className="opts">
+          <legend>Vous écrivez</legend>
+          <div className="opts-row">
+            {[['moi', 'Pour moi'], ['entreprise', 'Pour une entreprise']].map(([id, lib]) => (
+              <label key={id} className={`opt opt-s${v.pour === id ? ' is-on' : ''}`}>
+                <input type="radio" name="pour" value={id} checked={v.pour === id} onChange={maj('pour')} />
+                <b>{lib}</b>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+        {v.pour === 'entreprise' && <div className="reg-2 reg-appear">
           <Champ label="Entreprise" facultatif><input type="text" autoComplete="organization" value={v.entreprise} onChange={maj('entreprise')} /></Champ>
           <Champ label="Taille" facultatif>
             <select value={v.taille} onChange={maj('taille')}>
               <option value="">Choisir</option>
-              <option value="2-10">2 à 10 salariés</option>
+              <option value="1-10">1 à 10 salariés</option>
               <option value="11-49">11 à 49 salariés</option>
               <option value="50+">50 salariés et plus</option>
             </select>
           </Champ>
-        </div>
+        </div>}
         <Champ label="Message" erreur={err.message}><textarea rows={5} value={v.message} onChange={maj('message')} /></Champ>
         <AlerteFormulaire message={general} />
         <BoutonEnvoi enCours={envoi} attente="Envoi…">Envoyer</BoutonEnvoi>
