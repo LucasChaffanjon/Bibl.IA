@@ -24,10 +24,16 @@ npm run dev
 - `src/components/` : structure React (en-tête, barre latérale, pied de page, icônes, fenêtres)
 - `src/pages/` : points d'entrée React des pages
 - `src/styles/site.css` : styles d'origine
-- `src/legacy/pages/` : **contenus réels et comportements des pages** ; les fonctions `viewHome`, `viewLibrary`, `viewFiche`, `viewTraining`, `viewUpdates`, `viewProfile`, `viewBoss` sont conservées et séparées.
-- `src/legacy/features/` : recommandations, questionnaires
-- `src/legacy/core/` : état, utilitaires, routage
-- `src/legacy/data/catalogue.js` : IA, formations, contenus et exemples
+- `src/public/` : pages publiques en React (présentation, connexion, inscription, contact) et adresses du site (`routes.js`)
+- `src/api/client.js` : le seul fichier qui parle au back (fausses données tant que `FAUSSES_DONNEES` vaut `true`)
+- `src/theme.js` : thème clair / sombre
+- `public/legacy/pages/` : **contenus réels et comportements des pages du site connecté** ; les fonctions `viewHome`, `viewLibrary`, `viewFiche`, `viewTraining`, `viewUpdates`, `viewProfile`, `viewBoss` sont conservées et séparées.
+- `public/legacy/features/` : recommandations, prompts, questionnaires, activités
+- `public/legacy/core/` : état, utilitaires, routage du site connecté
+- `public/legacy/data/` : IA, formations, contenus et exemples (`catalogue.js`, `activites-tronc.js`)
+- `src/legacy/load.js` : charge les scripts de `public/legacy`, dans l’ordre, avec la version du site
+
+Les scripts de `public/legacy` ne passent pas par la compilation de Vite : après une modification, rechargez la page.
 
 ## Nature de la migration
 
