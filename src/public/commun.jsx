@@ -63,10 +63,10 @@ export function BarrePublique({ verOffres, sansInscription }) {
       <div className="pub-wrap pub-top-in">
         <Marque />
         <nav className="pub-top-act" aria-label="Navigation">
+          <ThemeToggle className="pub-theme" />
           {verOffres
             ? <button type="button" className="btn btn-quiet pub-hide-s" onClick={verOffres}>Offres</button>
             : <a className="btn btn-quiet pub-hide-s" href="/offres">Offres</a>}
-          <ThemeToggle />
           {/* La vraie connexion passera par le service de connexion (contrat § 1). En démo : /login simule le compte. */}
           <a className="btn btn-quiet" href="/login">Se connecter</a>
           {!sansInscription && <a className="btn btn-primary btn-sm" href="/inscription">Créer un compte</a>}
