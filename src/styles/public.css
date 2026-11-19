@@ -445,3 +445,4 @@ mark.hlx{color:inherit;background-color:transparent;background-image:linear-grad
 .login-types .opt{text-align:left}
 .reg-appear{animation:otherIn .22s var(--ease-out) both}
 @media (prefers-reduced-motion:reduce){.reg-appear{animation:none}}
+.pub-theme{margin-right:4px}
