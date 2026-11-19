@@ -37,3 +37,12 @@ html.compte-perso .foot-ent{display:none}
 .mem-list li{display:flex;gap:14px;align-items:flex-start;padding:14px 0;border-bottom:1px solid var(--line)}
 .mem-list .tile{--s:32px}
 .mem-on input:checked+span{color:var(--fg);text-decoration:none}
+
+/* ——— Questions au moment de la tâche (sous la recommandation) ——— */
+.kit{display:flex;flex-direction:column;gap:14px;padding:16px 18px;border:1px solid color-mix(in srgb,var(--accent) 30%,var(--line));border-radius:12px;background:color-mix(in srgb,var(--accent-soft) 55%,var(--surface))}
+.kit-q{display:flex;flex-direction:column;gap:8px}
+.kit-q p{font-size:15.5px;line-height:1.4}
+.kit .chip{min-height:34px;padding:0 14px;font-size:14.5px}
+.kit-sum{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.kit-sum .i{color:var(--accent)}
+.kit-sum .ulink{font-size:inherit;color:var(--accent)}

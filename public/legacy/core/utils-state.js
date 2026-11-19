@@ -20,10 +20,10 @@ const DEFAULTS = () => ({
   /* Type de compte (démo) : « particulier », ou « membre » d'une entreprise avec le rôle « salarie » ou « administrateur ».
      Il est déposé par /login et par l'inscription (src/public/commun.jsx, transmettreDemo). */
   account:{type:'membre', role:'administrateur', entreprise:''},
-  profile:{situation:'', situationOther:'', job:'', jobOther:'', studyLevel:'', studyLevelOther:'', tasks:[], tasksOther:'', audience:[], audienceOther:'', tone:'', toneOther:'', format:'', formatOther:'', langs:[], langsOther:'', level:'', tools:[], toolsOther:'', employerSector:'', employerSectorOther:'', employerSize:'', companyActivity:'', project:'', experience:'', region:'', signature:'', avoid:'', memoryOn:false, notes:'', done:false},
+  profile:{situation:'', situationOther:'', job:'', jobOther:'', studyLevel:'', studyLevelOther:'', tasks:[], tasksOther:'', audience:[], audienceOther:'', tone:'', toneOther:'', format:'', formatOther:'', langs:[], langsOther:'', level:'', tools:[], toolsOther:'', employerSector:'', employerSectorOther:'', employerSize:'', companyActivity:'', project:'', experience:'', region:'', signature:'', avoid:'', styleSample:'', memoryOn:false, notes:'', done:false},
   company:{name:'', sector:'', sectorOther:'', size:'', activity:'', clients:[], clientsOther:'', area:'', areaOther:'', values:[], valuesOther:'', voice:'', voiceOther:'', rules:'', notes:'', done:false},
   allowed:['chatgpt','lechat','claude','copilot','perplexity','deepl','canva','gamma'],
-  hidden:[], dock:['chatgpt','lechat','claude','copilot','perplexity','deepl'], done:['tc1'], rev:{tc1:{n:0,due:0}}, ratings:{}, suggestions:[], invites:0, welcomeOff:false,
+  hidden:[], dock:['chatgpt','lechat','claude','copilot','perplexity','deepl'], kits:{}, done:['tc1'], rev:{tc1:{n:0,due:0}}, ratings:{}, suggestions:[], invites:0, welcomeOff:false,
   blocks:[{id:'next',on:true},{id:'updates',on:true},{id:'ais',on:true},{id:'how',on:true},{id:'rules',on:true}]
 });
 let S = DEFAULTS();
